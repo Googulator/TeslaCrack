@@ -13,6 +13,7 @@
 
 import sys
 import os
+import posixpath
 from Crypto.Cipher import AES
 import struct
 
@@ -65,11 +66,11 @@ def decrypt_file(path):
 def traverse_directory(path):
     try:
         for entry in os.listdir(path):
-            if os.path.isdir(os.path.join(path, entry)):
-                traverse_directory(os.path.join(path, entry))
+            if os.path.isdir(posixpath.join(path, entry)):
+                traverse_directory(posixpath.join(path, entry))
             # TODO add other known extensions
-            elif entry.endswith(extension) and os.path.isfile(os.path.join(path, entry)):
-                decrypt_file(os.path.join(path, entry))
+            elif entry.endswith(extension) and os.path.isfile(posixpath.join(path, entry)):
+                decrypt_file(posixpath.join(path, entry))
     except Exception as e:
         print "Cannot access " + path
     
