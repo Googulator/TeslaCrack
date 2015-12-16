@@ -35,7 +35,13 @@ To use:
 3. Run "python teslacrack.py ." in the working folder. It will print out a hex number.
    This hex number is your session public key.
 4. Factor the number printed by teslacrack.py 
-   * E.g. using msieve: run "msieve -v -e 0x<public key from teslacrack.py>"
+   * E.g. using msieve: run "msieve -v -e 0x&lt;public key from teslacrack.py&gt;"
+     The -e switch is needed to do a "deep" elliptic curve search, which speeds up msieve for numbers
+     with many factors (by default, msieve is optimized for semiprimes such as RSA moduli)
+   * Alternatively, you can use YAFU, which is multithreaded, but tends to crash often for me
+   * For numbers with few factors (where -e is ineffective, and msieve/YAFU runs slow),
+     use factmsieve.py, which is more complicated, but also faster, multithreaded, and doesn't tend
+     to crash
 5. Edit unfactor.py, and replace the example numbers in the primes array with the factors you
    obtained in the previous step.
 6. Run "python unfactor.py" to reconstruct the session private key. It will print out any private
