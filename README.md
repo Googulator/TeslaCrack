@@ -58,8 +58,6 @@ To use:
 10. Run "python teslacrack.py C:\" to decrypt your files.
    * Some machines show multiple session keys - teslacrack.py will warn you of this, and print any
      unknown session keys it encounters. If this happens, repeat all steps with the newly found key.
-   * When the parameter to teslacrack.py is a drive letter, make sure to always include a trailing
-     backslash.
    * teslacrack.py takes an optional --delete parameter, which will delete the encrypted copies of
      any file it successfully decrypts. Before using this option, always verify that teslacrack.py
      is indeed decrypting correctly!
