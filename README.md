@@ -58,3 +58,8 @@ To use:
      any file it successfully decrypts. Before using this option, always verify that teslacrack.py
      is indeed decrypting correctly!
 
+And now, for some controversy...
+![](https://cloud.githubusercontent.com/assets/16308406/11841119/45709ea2-a3fb-11e5-9df6-8dcc43a6812e.png)
+![](https://cloud.githubusercontent.com/assets/16308406/11841120/4574e138-a3fb-11e5-981b-5b30e7f8bd84.png)
+
+The same day this happened, Kaspersky released this article: https://blog.kaspersky.com/teslacrypt-strikes-again/10860/ 
