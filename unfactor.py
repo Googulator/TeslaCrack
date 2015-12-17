@@ -19,7 +19,7 @@ magic = '%PDF'  # for a pdf file - change to the correct file magic if your samp
 iv = b'\x27\x51\x0A\xBF\x31\x8D\x69\x26\x17\x78\x97\x2B\x98\x7D\xF6\x9F'
 
 with open("sample.vvv", "rb") as f:
-        header = f.read(414)
+    header = f.read(414)
     data = f.read(16)
     for i in xrange(1<<len(primes)):
         x = 1
