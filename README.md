@@ -49,9 +49,6 @@ To use:
    * Sometimes, unfactor.py will print the same candidate multiple times. This is a known bug,
      please disregard it.
 7. Edit teslacrack.py, and add your public and private session keys to the known_keys array.
-   * Be careful, the private key needs to be formatted differently in teslacrack.py than the
-     format printed by unfactor.py - this is a known bug.
-     E.g. if unfactor.py prints 0XBADC0FFEE007L, put b'\xba\xdc\x0f\xfe\xe0\x07' in teslacrack.py
 8. Repeat step 3. You should get a file named "sample" - verify that it was decrypted correctly.
    If not, redo steps 7-8 with the other candidate keys from unfactor.py
 9. If the extension of your encrypted files is not '.vvv', edit teslacrack.py to match.
