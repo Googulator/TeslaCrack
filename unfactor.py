@@ -27,4 +27,4 @@ with open("sample.vvv", "rb") as f:
             if i & 1<<j:
                 x *= primes[j]
         if 1<<224 < x < 1<<256 and AES.new(binascii.unhexlify('%064x' % x), AES.MODE_CBC, iv).decrypt(data).startswith(magic):
-            print hex(x).upper() + " " + AES.new(binascii.unhexlify('%064x' % x), AES.MODE_CBC, iv).decrypt(data)
+            print "Candidate key: b'\\x" + '\\x'.join([('%064x' % x)[i:i+2] for i in xrange(0, 64, 2)]) + "'"
