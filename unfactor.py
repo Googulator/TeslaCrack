@@ -1,30 +1,26 @@
 from Crypto.Cipher import AES
 import binascii
+import sys
 
-primes = [  # these are example values, replace them with the primes you get from msieve!
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7,
-    8,
-    9,
-    10,
-]
+def main(args, magic = '%PDF', short_key_limit = 240):
+    if len(args) <= 2:
+        print "usage: unfactor-ecdsa.py <sample file> <space-separated list of factors>"
 
-magic = '%PDF'  # for a pdf file - change to the correct file magic if your sample.vvv is not a pdf
+    primes = args[1:]
 
-iv = b'\x27\x51\x0A\xBF\x31\x8D\x69\x26\x17\x78\x97\x2B\x98\x7D\xF6\x9F'
-
-with open("sample.vvv", "rb") as f:
-    header = f.read(414)
-    data = f.read(16)
-    for i in xrange(1<<len(primes)):
-        x = 1
-        for j in xrange(len(primes)):
-            if i & 1<<j:
-                x *= primes[j]
-        if 1<<224 < x < 1<<256 and AES.new(binascii.unhexlify('%064x' % x), AES.MODE_CBC, iv).decrypt(data).startswith(magic):
-            print "Candidate key: b'\\x" + '\\x'.join([('%064x' % x)[i:i+2] for i in xrange(0, 64, 2)]) + "'"
+    with open(args[0], "rb") as f:
+        header = f.read(414)
+        if not header.startswith('\xde\xad\xbe\xef\x04'):
+            print args[0] + " doesn't appear to be TeslaCrypted"
+            return
+        data = f.read(16)
+        for i in xrange(1<<len(primes)):
+            x = 1
+            for j in xrange(len(primes)):
+                if i & 1<<j:
+                    x *= int(primes[j])
+            if 1<<short_key_limit < x < 1<<256 and AES.new(binascii.unhexlify('%064x' % x), AES.MODE_CBC, header[0x18a:0x19a]).decrypt(data).startswith(magic):
+                print "Candidate AES private key: b'\\x" + '\\x'.join([('%064x' % x)[i:i+2] for i in xrange(0, 64, 2)]) + "' (%064X)" % x
+            
+if __name__ == '__main__':
+    main(sys.argv[1:])

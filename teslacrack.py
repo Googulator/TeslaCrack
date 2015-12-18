@@ -30,6 +30,8 @@ delete = False
 
 unknown_keys = {}
 
+unknown_btkeys = {}
+
 def decrypt_file(path):
     try:
         do_unlink = False
@@ -41,7 +43,10 @@ def decrypt_file(path):
                 return
             
             if header[0x108:0x188] not in known_keys:
-                unknown_keys[header[0x108:0x188]] = path
+                if header[0x108:0x188] not in unknown_keys:
+                    unknown_keys[header[0x108:0x188]] = path
+                if header[0x45:0xc5] not in unknown_btkeys:
+                    unknown_btkeys[header[0x45:0xc5]] = path
                 print "Cannot decrypt {}, unknown key".format(path)
                 return
             
@@ -86,9 +91,12 @@ def main(args):
 
     traverse_directory(path)
     if unknown_keys:
-        print "Software has encountered the following unknown keys, please crack them first using msieve:"
+        print "Software has encountered the following unknown AES keys, please crack them first using msieve:"
         for key in unknown_keys:
             print key + " found in " + unknown_keys[key]
+        print "Alternatively, you can crack the following Bitcoin key(s) using msieve, and use them with TeslaDecoder:"
+        for key in unknown_btkeys:
+            print key + " found in " + unknown_btkeys[key]
     
 if __name__=='__main__':
     main(sys.argv[1:])

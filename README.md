@@ -26,15 +26,16 @@ unlucky keys possibly taking up to a week.
 
 To use:
 
-1. Collect an encrypted file from the attacked machine, and rename it to "sample.vvv"
+1. Collect an encrypted file from the attacked machine.
    Choose a file with a known initial magic number - unfactor.py is pre-configured
    for working with PDF files; change the magic number in unfactor.py from '%PDF' to the correct
    value if you are not using a PDF (e.g. 'PK' for .zip, ODF or .docx/OOXML files; '\xff\xd8' for
    JPEGs; or '\xd0\xcf\x11\xe0' for MS Office .doc files).
-2. Put sample.vvv into the same folder as unfactor.py and teslacrack.py (the working folder)
-3. Run "python teslacrack.py ." in the working folder. It will print out a hex number.
-   This hex number is your session public key.
-4. Factor the number printed by teslacrack.py 
+2. Put the collected file into the same folder as unfactor.py and teslacrack.py (the working folder)
+3. If the extension of your encrypted files is not '.vvv', edit teslacrack.py to match.
+4. Run "python teslacrack.py ." in the working folder. It will print out a hex number.
+   This hex number is your AES public key.
+5. Factor the number printed by teslacrack.py 
    * E.g. using msieve: run "msieve -v -e 0x&lt;public key from teslacrack.py&gt;"
      The -e switch is needed to do a "deep" elliptic curve search, which speeds up msieve for numbers
      with many factors (by default, msieve is optimized for semiprimes such as RSA moduli)
@@ -42,17 +43,20 @@ To use:
    * For numbers with few factors (where -e is ineffective, and msieve/YAFU runs slow),
      use factmsieve.py, which is more complicated, but also faster, multithreaded, and doesn't tend
      to crash
-5. Edit unfactor.py, and replace the example numbers in the primes array with the factors you
-   obtained in the previous step.
-6. Run "python unfactor.py" to reconstruct the session private key. It will print out any private
-   key candidates found (usually just one).
+6. Run "python unfactor.py <name of encrypted file> <primes from previous step, separated by spaces"
+   to reconstruct the AES private key. It will print out any private key candidates found
+   (usually just one).
    * Sometimes, unfactor.py will print the same candidate multiple times. This is a known bug,
      please disregard it.
-7. Edit teslacrack.py, and add your public and private session keys to the known_keys array.
+   * Alternatively, you can use unfactor-ecdsa.py to get your keys - this is slower, and requires the
+     "ecdsa" Python module to be installed; however, unlike unfactor.py, it can also reconstruct
+     Bitcoin private keys (to be used with TeslaDecoder), not just AES ones. Also, unfactor-ecdsa.py
+     is guaranteed to always yield only correct keys, while unfactor.py may sometimes find false
+     positives as well.
+7. Edit teslacrack.py, and add your public and private AES keys to the known_keys array.
 8. Repeat step 3. You should get a file named "sample" - verify that it was decrypted correctly.
    If not, redo steps 7-8 with the other candidate keys from unfactor.py
-9. If the extension of your encrypted files is not '.vvv', edit teslacrack.py to match.
-10. Run "python teslacrack.py C:\" to decrypt your files.
+9. Run "python teslacrack.py C:\" to decrypt your files.
    * Some machines show multiple session keys - teslacrack.py will warn you of this, and print any
      unknown session keys it encounters. If this happens, repeat all steps with the newly found key.
    * teslacrack.py takes an optional --delete parameter, which will delete the encrypted copies of
