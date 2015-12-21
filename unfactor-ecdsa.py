@@ -8,13 +8,13 @@ def main(args, short_key_limit = 240):
 
     primes = args[1:]
 
-    short_key_limit = 240  # if key cannot be found from factors, reduce this number
-
     pubkeys = {}
+    
+    known_file_magics = ['\xde\xad\xbe\xef', '\x00\x00\x00\x00']
 
     with open(args[0], "rb") as f:
         header = f.read(414)
-        if not header.startswith('\xde\xad\xbe\xef\x04'):
+        if header[:4] not in known_file_magics:
             print argv[0] + " doesn't appear to be TeslaCrypted"
             return
         for i in xrange(1<<len(primes)):

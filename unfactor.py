@@ -8,9 +8,11 @@ def main(args, magic = '%PDF', short_key_limit = 240):
 
     primes = args[1:]
 
+    known_file_magics = ['\xde\xad\xbe\xef', '\x00\x00\x00\x00']
+    
     with open(args[0], "rb") as f:
         header = f.read(414)
-        if not header.startswith('\xde\xad\xbe\xef\x04'):
+        if header[:4] not in known_file_magics:
             print args[0] + " doesn't appear to be TeslaCrypted"
             return
         data = f.read(16)

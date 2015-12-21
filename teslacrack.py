@@ -24,7 +24,7 @@ known_keys = {
 }
 
 extension = '.vvv'
-magic = b'\xDE\xAD\xBE\xEF'
+known_file_magics = ['\xde\xad\xbe\xef', '\x00\x00\x00\x00']
 
 delete = False
 
@@ -38,7 +38,7 @@ def decrypt_file(path):
         with open(path, "rb") as fin:
             header = fin.read(414)
             
-            if header[:4] != magic:
+            if header[:4] not in known_file_magics:
                 print path + " doesn't appear to be TeslaCrypted"
                 return
             
