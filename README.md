@@ -54,7 +54,7 @@ To use:
      is guaranteed to always yield only correct keys, while unfactor.py may sometimes find false
      positives as well.
 7. Edit teslacrack.py, and add your public and private AES keys to the known_keys array.
-8. Repeat step 3. You should get a file named "sample" - verify that it was decrypted correctly.
+8. Repeat step 3. The decrypted file should appear next to the encrypted vvv file - verify that it was decrypted correctly.
    If not, redo steps 7-8 with the other candidate keys from unfactor.py
 9. Run "python teslacrack.py C:\" to decrypt your files.
    * Some machines show multiple session keys - teslacrack.py will warn you of this, and print any
