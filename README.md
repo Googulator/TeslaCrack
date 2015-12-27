@@ -25,10 +25,10 @@ with pycrypto installed. If you don't yet have a working Python environment, do 
    * Make sure to select the option to add Python to your PATH.
    * A 32-bit Python can also be used, but will be significantly slower. If possible, use a 64-bit
      system for decrypting your files.
-2. At a command prompt with administrative rights, execute the following:
-   <code>python -c "import urllib2; print urllib2.urlopen('https://bootstrap.pypa.io/ez_setup.py').read()" | python</code>
-   <code>easy_install pip</code>
-   <code>pip install http://www.voidspace.org.uk/python/pycrypto-2.6.1/pycrypto-2.6.1-cp27-none-win_amd64.whl</code>
+2. At a command prompt with administrative rights, execute the following commands:<br />
+   <code>python -c "import urllib2; print urllib2.urlopen('https://bootstrap.pypa.io/ez_setup.py').read()" | python</code><br />
+   <code>easy_install pip</code><br />
+   <code>pip install http://www.voidspace.org.uk/python/pycrypto-2.6.1/pycrypto-2.6.1-cp27-none-win_amd64.whl</code><br />
    <code>pip install ecdsa</code> (optional, needed only for unfactor-ecdsa.py)
 
 In addition, you need a program for factoring large numbers.
