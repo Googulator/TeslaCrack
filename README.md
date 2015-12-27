@@ -76,7 +76,7 @@ Note: Commands written <code>like this</code> need to be executed from the comma
 7. Edit teslacrack.py, and add your public and private AES keys to the known_keys array.
 8. Repeat step 3. The decrypted file should appear next to the encrypted vvv file - verify that it was decrypted correctly.
    If not, redo steps 7-8 with the other candidate keys from unfactor.py
-9. Run </code>python teslacrack.py C:\ </code> from an administrator command prompt to decrypt your files.
+9. Run <code>python teslacrack.py C:\ </code> from an administrator command prompt to decrypt your files.
    * Some machines show multiple session keys - teslacrack.py will warn you of this, and print any
      unknown session keys it encounters. If this happens, repeat all steps with the newly found key.
    * teslacrack.py takes an optional --delete parameter, which will delete the encrypted copies of
