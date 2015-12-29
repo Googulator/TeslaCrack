@@ -15,7 +15,7 @@ def main(args, short_key_limit = 240):
     with open(args[0], "rb") as f:
         header = f.read(414)
         if header[:4] not in known_file_magics:
-            print argv[0] + " doesn't appear to be TeslaCrypted"
+            print args[0] + " doesn't appear to be TeslaCrypted"
             return
         for i in xrange(1<<len(primes)):
             x = 1
