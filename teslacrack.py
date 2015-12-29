@@ -47,11 +47,11 @@ def decrypt_file(path):
                 print path + " doesn't appear to be TeslaCrypted"
                 return
             
-            if header[0x108:0x188].rstrip('\n') not in known_keys:
-                if header[0x108:0x188].rstrip('\n') not in unknown_keys:
-                    unknown_keys[header[0x108:0x188].rstrip('\n')] = path
-                if header[0x45:0xc5].rstrip('\n') not in unknown_btkeys:
-                    unknown_btkeys[header[0x45:0xc5].rstrip('\n')] = path
+            if header[0x108:0x188].rstrip('\0') not in known_keys:
+                if header[0x108:0x188].rstrip('\0') not in unknown_keys:
+                    unknown_keys[header[0x108:0x188].rstrip('\0')] = path
+                if header[0x45:0xc5].rstrip('\0') not in unknown_btkeys:
+                    unknown_btkeys[header[0x45:0xc5].rstrip('\0')] = path
                 print "Cannot decrypt {}, unknown key".format(path)
                 return
             
