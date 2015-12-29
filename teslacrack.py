@@ -32,6 +32,11 @@ unknown_keys = {}
 
 unknown_btkeys = {}
 
+def fix_key(key):
+    while key[0] == '\0':
+        key = key[1:] + '\0'
+    return key
+
 def decrypt_file(path):
     try:
         do_unlink = False
@@ -50,7 +55,7 @@ def decrypt_file(path):
                 print "Cannot decrypt {}, unknown key".format(path)
                 return
             
-            decryptor = AES.new(known_keys[header[0x108:0x188]], AES.MODE_CBC, header[0x18a:0x19a])
+            decryptor = AES.new(fix_key(known_keys[header[0x108:0x188].rstrip('\0')]), AES.MODE_CBC, header[0x18a:0x19a])
             size = struct.unpack('<I', header[0x19a:0x19e])[0]
             
             if not os.path.exists(os.path.splitext(path)[0]):
