@@ -88,3 +88,6 @@ And now, for some controversy...
 ![](https://cloud.githubusercontent.com/assets/16308406/11841120/4574e138-a3fb-11e5-981b-5b30e7f8bd84.png)
 
 The same day this happened, Kaspersky released this article: https://blog.kaspersky.com/teslacrypt-strikes-again/10860/ 
+
+<span class="badge-flattr"><a href="https://flattr.com/profile/Googulator" title="Donate to this project using Flattr"><img src="https://img.shields.io/badge/flattr-donate-yellow.svg" alt="Flattr donate button" /></a></span>
+<span class="badge-bitcoin"><a href="bitcoin:1AdcYneBgky3yMP7d2snQ5wznbWKzULezj" title="Donate once-off to this project using Bitcoin"><img src="https://img.shields.io/badge/bitcoin-donate-yellow.svg" alt="Bitcoin donate button" /></a></span>
