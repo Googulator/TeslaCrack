@@ -53,7 +53,7 @@ Note: Commands written <code>like this</code> need to be executed from the comma
    * If you get an error message, make sure that you have Python and pycrypto installed.
      See above for instructions.
 5. Factor the AES key printed by teslacrack.py 
-   * E.g. using msieve: run <code>msieve -v -e \<public key from teslacrack.py\></code>
+   * E.g. using msieve: run <code>msieve -v -e 0x\<public key from teslacrack.py\></code>
      The -e switch is needed to do a "deep" elliptic curve search, which speeds up msieve for numbers
      with many factors (by default, msieve is optimized for semiprimes such as RSA moduli)
    * Alternatively, you can use YAFU, which is multithreaded, but tends to crash often for me
