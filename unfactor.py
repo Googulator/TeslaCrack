@@ -3,8 +3,8 @@ import binascii
 import sys
 
 def main(args, magic = '%PDF', short_key_limit = 240):
-    if len(args) <= 2:
-        print "usage: unfactor-ecdsa.py <sample file> <space-separated list of factors>"
+    if len(args) < 2:
+        print "usage: unfactor.py <sample file> <space-separated list of factors>"
 
     primes = args[1:]
 
