@@ -23,8 +23,11 @@ with pycrypto installed. If you don't yet have a working Python environment, do 
 
 1. Download the latest Python 2.7 64-bit release from https://www.python.org
    * Make sure to select the option to add Python to your PATH.
-   * A 32-bit Python can also be used, but will be significantly slower. If possible, use a 64-bit
-     system for decrypting your files.
+   * A 32-bit Python can also be used, but will be significantly slower, and requires a different versiom of pycrypto
+.
+     If possible, use a 64-bit system for decrypting your files.
+     Python.org by default offers you a 32-bit version! Make sure
+     to explicitly choose the 64-bit version.
 2. At a command prompt with administrative rights, execute the following commands:<br />
    <code>python -c "import urllib2; print urllib2.urlopen('https://bootstrap.pypa.io/ez_setup.py').read()" | python</code><br />
    <code>easy_install pip</code><br />
