@@ -55,7 +55,8 @@ Note: Commands written <code>like this</code> need to be executed from the comma
    Te first hex number is your AES public key.
    * If you get an error message, make sure that you have Python and pycrypto installed.
      See above for instructions.
-5. Factor the AES key printed by teslacrack.py 
+5. Convert your number from hex to decimal and search [factordb.com](http://factordb.com/) for your number. If you are lucky, it has already been factored and you can skip the next step. 
+6. Factor the AES key printed by teslacrack.py  
    * E.g. using msieve: run <code>msieve -v -e 0x\<public key from teslacrack.py\></code>
      The -e switch is needed to do a "deep" elliptic curve search, which speeds up msieve for numbers
      with many factors (by default, msieve is optimized for semiprimes such as RSA moduli)
@@ -64,7 +65,7 @@ Note: Commands written <code>like this</code> need to be executed from the comma
    * For numbers with few factors (where -e is ineffective, and msieve/YAFU runs slow),
      use factmsieve.py, which is more complicated, but also faster, multithreaded, and doesn't tend
      to crash
-6. Run <code>python unfactor.py \<name of encrypted file\> \<primes from previous step, separated by spaces\></code>
+7. Run <code>python unfactor.py \<name of encrypted file\> \<primes from previous step, separated by spaces\></code>
    to reconstruct the AES private key. It will print out any private key candidates found
    (usually just one).
    * Sometimes, unfactor.py will print the same candidate multiple times. This is a known bug,
@@ -76,10 +77,10 @@ Note: Commands written <code>like this</code> need to be executed from the comma
      known magic numbers, while unfactor.py is filetype-dependent, and may sometimes
      report false positive keys. Syntax for the two scripts is the same, simply add <code>-ecdsa</code>
      to the name of the script.
-7. Edit teslacrack.py, and add your public and private AES keys to the known_keys array.
-8. Repeat step 3. The decrypted file should appear next to the encrypted vvv file - verify that it was decrypted correctly.
+8. Edit teslacrack.py, and add your public and private AES keys to the known_keys array.
+9. Repeat step 3. The decrypted file should appear next to the encrypted vvv file - verify that it was decrypted correctly.
    If not, redo steps 7-8 with the other candidate keys from unfactor.py
-9. Run <code>python teslacrack.py C:\\</code> from an administrator command prompt to decrypt your files.
+10. Run <code>python teslacrack.py C:\\</code> from an administrator command prompt to decrypt your files.
    * Some machines show multiple session keys - teslacrack.py will warn you of this, and print any
      unknown session keys it encounters. If this happens, repeat all steps with the newly found key.
    * teslacrack.py takes an optional <code>--delete</code> parameter, which will delete the encrypted copies of
