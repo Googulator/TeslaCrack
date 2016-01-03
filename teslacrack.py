@@ -25,7 +25,7 @@ known_keys = {
 }
 
 extension = '.vvv'
-known_file_magics = ['\xde\xad\xbe\xef', '\x00\x00\x00\x00']
+known_file_magics = ['\xde\xad\xbe\xef\x04', '\x00\x00\x00\x00\x04']
 
 delete = False
 
@@ -44,7 +44,7 @@ def decrypt_file(path):
         with open(path, "rb") as fin:
             header = fin.read(414)
             
-            if header[:4] not in known_file_magics:
+            if header[:5] not in known_file_magics:
                 print path + " doesn't appear to be TeslaCrypted"
                 return
             
@@ -71,11 +71,13 @@ def decrypt_file(path):
         if do_unlink:
             os.unlink(path)
     except Exception:
-        raise
         print "Error decrypting {}, please try again".format(path)
         
 def traverse_directory(path):
     try:
+        if not os.path.isdir(path):
+            decrypt_file(path)
+            return
         for entry in os.listdir(path):
             if os.path.isdir(posixpath.join(path, entry)):
                 traverse_directory(posixpath.join(path, entry))
