@@ -75,7 +75,7 @@ def decrypt_file(path):
         
 def traverse_directory(path):
     try:
-        if not os.path.isdir(path):
+        if os.path.isfile(path):
             decrypt_file(path)
             return
         for entry in os.listdir(path):
