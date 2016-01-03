@@ -6,7 +6,7 @@ This is a tool for decrypting files that were encrypted with the latest version
 can be recognized from the extension ".vvv" added to the names of encrypted files, and the
 file names of the ransom notes being "Howto_RESTORE_FILES.txt".
 The tool should also work against other recent versions of TeslaCrypt - for ancient versions,
-use tesladecrypt or TeslaDecoder instead.
+use tesladecrypt or TeslaDecoder together with the Bitcoin-based key reconstructor instead.
 
 TeslaCrack implements an integer factorization attack against TeslaCrypt's encryption
 scheme. The actual factorization is not implemented within TeslaCrack, instead,
@@ -32,7 +32,8 @@ with pycrypto installed. If you don't yet have a working Python environment, do 
    <code>python -c "import urllib2; print urllib2.urlopen('https://bootstrap.pypa.io/ez_setup.py').read()" | python</code><br />
    <code>easy_install pip</code><br />
    <code>pip install http://www.voidspace.org.uk/python/pycrypto-2.6.1/pycrypto-2.6.1-cp27-none-win_amd64.whl</code><br />
-   <code>pip install ecdsa</code> (optional, needed only for unfactor-ecdsa.py)
+   <code>pip install ecdsa</code> (optional, needed only for unfactor-ecdsa.py)<br />
+   <code>pip install coinkit</code> (optional, needed only for unfactor-bitcoin.py)
 
 In addition, you need a program for factoring large numbers.
 For this purpose, I recommend using Msieve and the factmsieve.py wrapper.
@@ -77,6 +78,13 @@ Note: Commands written <code>like this</code> need to be executed from the comma
      known magic numbers, while unfactor.py is filetype-dependent, and may sometimes
      report false positive keys. Syntax for the two scripts is the same, simply add <code>-ecdsa</code>
      to the name of the script.
+   * For very old TeslaCrypt infections, a third key reconstructor is provided, which uses the Bitcoin
+     ransom address instead of a sample file. Both the Bitcoin address and the public key can be obtained
+     from the recovery file in the affected machine's Documents folder for such old infections.
+     The Bitcoin address is the first line of the file, while the public key (which needs to be factored)
+     is the third line. Syntax is like unfactor.py, but use the Bitcoin address in place of a filename.
+     Note that teslacrack.py can't decode the file format used by old TeslaCrypt, so you will need
+     to perform the actual decryption using TeslaDecoder.
 8. Edit teslacrack.py, and add your public and private AES keys to the known_keys array.
 9. Repeat step 3. The decrypted file should appear next to the encrypted vvv file - verify that it was decrypted correctly.
    If not, redo steps 7-8 with the other candidate keys from unfactor.py
