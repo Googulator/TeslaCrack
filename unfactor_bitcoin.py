@@ -17,15 +17,11 @@
 # unfactor-bitcoin.py <1st line of recovery file> <factors of 3rd line of recovery file>
 # The generated key can then be used with TeslaDecoder.
 
+from __future__ import print_function
 from coinkit.keypair import BitcoinKeypair
 import sys
 
-def main(args, short_key_limit = 240):
-    if len(args) <= 2:
-        print "usage: unfactor-bitcoin.py <bitcoin address> <space-separated list of factors>"
-
-    primes = args[1:]
-
+def main(addr, primes, short_key_limit = 240):
     addrs = {}
     
     for i in xrange(1<<len(primes)):
@@ -36,11 +32,12 @@ def main(args, short_key_limit = 240):
         if 1<<short_key_limit < x < 1<<256:
             if x not in addrs:
                 addrs[x] = BitcoinKeypair(x).address()
-            if args[0] == addrs[x]:
-                print "Found Bitcoin private key: %064X" % x
-                return
+            if addr == addrs[x]:
+                return "Found Bitcoin private key: %064X" % x
 
-    print "No keys found, check your factors!"
+    return "No keys found, check your factors!"
     
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    if len(sys.argv) < 3:
+        print("usage: unfactor-bitcoin.py <bitcoin address> <space-separated list of factors>")
+    print(main(sys.argv[1], sys.argv[2:]))

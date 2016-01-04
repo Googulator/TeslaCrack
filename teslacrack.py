@@ -11,6 +11,7 @@
 #
 # Enjoy! ;)
 
+from __future__ import print_function
 import sys
 import os
 import posixpath
@@ -45,7 +46,7 @@ def decrypt_file(path):
             header = fin.read(414)
             
             if header[:5] not in known_file_magics:
-                print path + " doesn't appear to be TeslaCrypted"
+                print(path + " doesn't appear to be TeslaCrypted")
                 return
             
             if header[0x108:0x188].rstrip('\0') not in known_keys:
@@ -53,25 +54,25 @@ def decrypt_file(path):
                     unknown_keys[header[0x108:0x188].rstrip('\0')] = path
                 if header[0x45:0xc5].rstrip('\0') not in unknown_btkeys:
                     unknown_btkeys[header[0x45:0xc5].rstrip('\0')] = path
-                print "Cannot decrypt {}, unknown key".format(path)
+                print("Cannot decrypt {}, unknown key".format(path))
                 return
             
             decryptor = AES.new(fix_key(known_keys[header[0x108:0x188].rstrip('\0')]), AES.MODE_CBC, header[0x18a:0x19a])
             size = struct.unpack('<I', header[0x19a:0x19e])[0]
             
             if not os.path.exists(os.path.splitext(path)[0]):
-                print "Decrypting {}".format(path)
+                print("Decrypting {}".format(path))
                 fout = open(os.path.splitext(path)[0], 'wb')
                 data = fin.read()
                 fout.write(decryptor.decrypt(data)[:size])
                 if delete:
                     do_unlink = True
             else:
-                print "Not decrypting {}, decrypted copy already exists".format(path)
+                print("Not decrypting {}, decrypted copy already exists".format(path))
         if do_unlink:
             os.unlink(path)
     except Exception:
-        print "Error decrypting {}, please try again".format(path)
+        print("Error decrypting {}, please try again".format(path))
         
 def traverse_directory(path):
     try:
@@ -85,7 +86,7 @@ def traverse_directory(path):
             elif entry.endswith(extension) and os.path.isfile(posixpath.join(path, entry)):
                 decrypt_file(posixpath.join(path, entry))
     except Exception as e:
-        print "Cannot access " + path
+        print("Cannot access " + path)
     
 def main(args):
     path = '.'
@@ -99,12 +100,12 @@ def main(args):
 
     traverse_directory(path)
     if unknown_keys:
-        print "Software has encountered the following unknown AES keys, please crack them first using msieve:"
+        print("Software has encountered the following unknown AES keys, please crack them first using msieve:")
         for key in unknown_keys:
-            print key + " found in " + unknown_keys[key]
-        print "Alternatively, you can crack the following Bitcoin key(s) using msieve, and use them with TeslaDecoder:"
+            print(key + " found in " + unknown_keys[key])
+        print("Alternatively, you can crack the following Bitcoin key(s) using msieve, and use them with TeslaDecoder:")
         for key in unknown_btkeys:
-            print key + " found in " + unknown_btkeys[key]
+            print(key + " found in " + unknown_btkeys[key])
     
 if __name__=='__main__':
     main(sys.argv[1:])
