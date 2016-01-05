@@ -28,8 +28,9 @@ def main(addr, primes):
         prod *= int(primes[i])
     if prod >= 1<<512:
         return "Superfluous factors or incorrect factorization detected!"
-        
-    for i in xrange(1<<len(primes)):
+    
+    i = 1
+    while i < 1<<len(primes):
         x = 1
         for j in xrange(len(primes)):
             if i & 1<<j:
@@ -39,6 +40,7 @@ def main(addr, primes):
                 addrs[x] = BitcoinKeypair(x).address()
             if addr == addrs[x]:
                 return "Found Bitcoin private key: %064X" % x
+        i += 1
 
     return "No keys found, check your factors!"
     
