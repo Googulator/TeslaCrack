@@ -31,7 +31,8 @@ def main(file, primes, magic = '%PDF'):
         
         data = f.read(16)
         found = False
-        for i in xrange(1<<len(primes)):
+        i = 1
+        while i < 1<<len(primes):
             x = 1
             for j in xrange(len(primes)):
                 if i & 1<<j:
@@ -39,14 +40,17 @@ def main(file, primes, magic = '%PDF'):
             if x < 1<<256 and ecdh/x < 1<<256 and AES.new(fix_key(binascii.unhexlify('%064x' % x)), AES.MODE_CBC, header[0x18a:0x19a]).decrypt(data).startswith(magic):
                 ret += "Candidate AES private key: b'\\x" + '\\x'.join([('%064x' % x)[i:i+2] for i in xrange(0, 64, 2)]) + ("' (%064X)" % x) + "\n"
                 found = True
+            i += 1
         if cofactor != 1 and not found:
-            for i in xrange(1<<len(primes)):
+            i = 1
+            while i < 1<<len(primes):
                 x = cofactor
                 for j in xrange(len(primes)):
                     if i & 1<<j:
                         x *= int(primes[j])
                 if x < 1<<256 and ecdh/x < 1<<256 and AES.new(fix_key(binascii.unhexlify('%064x' % x)), AES.MODE_CBC, header[0x18a:0x19a]).decrypt(data).startswith(magic):
                     ret += "Candidate AES private key: b'\\x" + '\\x'.join([('%064x' % x)[i:i+2] for i in xrange(0, 64, 2)]) + ("' (%064X)" % x) + "\n"
+                i += 1
     
     return ret
     
