@@ -32,8 +32,8 @@ with pycrypto installed. If you don't yet have a working Python environment, do 
    <code>python -c "import urllib2; print urllib2.urlopen('https://bootstrap.pypa.io/ez_setup.py').read()" | python</code><br />
    <code>easy_install pip</code><br />
    <code>pip install http://www.voidspace.org.uk/python/pycrypto-2.6.1/pycrypto-2.6.1-cp27-none-win_amd64.whl</code><br />
-   <code>pip install ecdsa</code> (optional, needed only for unfactor-ecdsa.py)<br />
-   <code>pip install coinkit</code> (optional, needed only for unfactor-bitcoin.py)
+   <code>pip install ecdsa</code> (optional, needed only for unfactor_ecdsa.py)<br />
+   <code>pip install coinkit</code> (optional, needed only for unfactor_bitcoin.py)
 
 In addition, you need a program for factoring large numbers.
 For this purpose, I recommend using Msieve and the factmsieve.py wrapper.
@@ -71,12 +71,12 @@ Note: Commands written <code>like this</code> need to be executed from the comma
    (usually just one).
    * Sometimes, unfactor.py will print the same candidate multiple times. This is a known bug,
      please disregard it.
-   * Alternatively, you can use unfactor-ecdsa.py to get your keys - this is slower, and requires the
+   * Alternatively, you can use unfactor_ecdsa.py to get your keys - this is slower, and requires the
      "ecdsa" Python module to be installed; however, unlike unfactor.py, it can also reconstruct
-     Bitcoin private keys (to be used with TeslaDecoder), not just AES ones. Also, unfactor-ecdsa.py
+     Bitcoin private keys (to be used with TeslaDecoder), not just AES ones. Also, unfactor_ecdsa.py
      is guaranteed to always yield only correct keys, and can recover keys even from files without
      known magic numbers, while unfactor.py is filetype-dependent, and may sometimes
-     report false positive keys. Syntax for the two scripts is the same, simply add <code>-ecdsa</code>
+     report false positive keys. Syntax for the two scripts is the same, simply add <code>_ecdsa</code>
      to the name of the script.
    * For very old TeslaCrypt infections, a third key reconstructor is provided, which uses the Bitcoin
      ransom address instead of a sample file. Both the Bitcoin address and the public key can be obtained

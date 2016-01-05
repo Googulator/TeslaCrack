@@ -21,15 +21,20 @@ from __future__ import print_function
 from coinkit.keypair import BitcoinKeypair
 import sys
 
-def main(addr, primes, short_key_limit = 240):
+def main(addr, primes):
     addrs = {}
-    
+    prod = 1
+    for i in xrange(len(primes)):
+        prod *= int(primes[i])
+    if prod >= 1<<512:
+        return "Superfluous factors or incorrect factorization detected!"
+        
     for i in xrange(1<<len(primes)):
         x = 1
         for j in xrange(len(primes)):
             if i & 1<<j:
                 x *= int(primes[j])
-        if 1<<short_key_limit < x < 1<<256:
+        if x < 1<<256 and prod/x < 1<<256:
             if x not in addrs:
                 addrs[x] = BitcoinKeypair(x).address()
             if addr == addrs[x]:
@@ -40,4 +45,5 @@ def main(addr, primes, short_key_limit = 240):
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         print("usage: unfactor-bitcoin.py <bitcoin address> <space-separated list of factors>")
+        exit()
     print(main(sys.argv[1], sys.argv[2:]))
