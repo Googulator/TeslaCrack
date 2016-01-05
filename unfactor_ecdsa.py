@@ -25,7 +25,8 @@ def main(file, primes):
         if cofactor*prod != ecdh:
             return "Error: factors don't divide either pubkey"
 
-        for i in xrange(1<<len(primes)):
+        i = 1
+        while i < 1<<len(primes):
             x = 1
             for j in xrange(len(primes)):
                 if i & 1<<j:
@@ -37,8 +38,10 @@ def main(file, primes):
                     return "Found Bitcoin private key: %064X" % x
                 elif header[200:].startswith(pubkeys[x]):
                     return "Found AES private key: b'\\x" + '\\x'.join([('%064x' % x)[i:i+2] for i in xrange(0, 64, 2)]) + "' (%064X)" % x
+            i += 1
 
-        for i in xrange(1<<len(primes)):
+        i = 1
+        while i < 1<<len(primes):
             x = cofactor
             for j in xrange(len(primes)):
                 if i & 1<<j:
@@ -50,6 +53,7 @@ def main(file, primes):
                     return "Found Bitcoin private key: %064X" % x
                 elif header[200:].startswith(pubkeys[x]):
                     return "Found AES private key: b'\\x" + '\\x'.join([('%064x' % x)[i:i+2] for i in xrange(0, 64, 2)]) + "' (%064X)" % x
+            i += 1
         
         if cofactor != 1:
             return "No keys found, incomplete factorization!"
