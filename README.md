@@ -19,11 +19,11 @@ Two files are included:
 - unfactor.py reconstructs the private key from the previously found factors of the public key.
 
 This utility requires a working Python environment (2.7.x recommended, tested with 2.7.11),
-with pycrypto installed. If you don't yet have a working Python environment, do the following:
+with pycryptodome installed. If you don't yet have a working Python environment, do the following:
 
 1. Download the latest Python 2.7 64-bit release from https://www.python.org
    * Make sure to select the option to add Python to your PATH.
-   * A 32-bit Python can also be used, but will be significantly slower, and requires a different versiom of pycrypto
+   * A 32-bit Python can also be used, but will be significantly slower, and requires a different versiom of pycryptodome
 .
      If possible, use a 64-bit system for decrypting your files.
      Python.org by default offers you a 32-bit version! Make sure
@@ -31,7 +31,7 @@ with pycrypto installed. If you don't yet have a working Python environment, do 
 2. At a command prompt with administrative rights, execute the following commands:<br />
    <code>python -c "import urllib2; print urllib2.urlopen('https://bootstrap.pypa.io/ez_setup.py').read()" | python</code><br />
    <code>easy_install pip</code><br />
-   <code>pip install http://www.voidspace.org.uk/python/pycrypto-2.6.1/pycrypto-2.6.1-cp27-none-win_amd64.whl</code><br />
+   <code>pip install pycryptodome</code><br />
    <code>pip install ecdsa</code> (optional, needed only for unfactor_ecdsa.py)<br />
    <code>pip install coinkit</code> (optional, needed only for unfactor_bitcoin.py)
 
