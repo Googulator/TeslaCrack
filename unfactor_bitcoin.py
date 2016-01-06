@@ -18,12 +18,19 @@
 # The generated key can then be used with TeslaDecoder.
 
 from __future__ import print_function
-from coinkit.keypair import BitcoinKeypair
+try:
+    from coinkit.keypair import BitcoinKeypair
+except ImportError:
+    from pybitcoin.keypair import BitcoinKeypair
 import sys
 
 def main(addr, primes):
     addrs = {}
     prod = 1
+    try:
+        xrange
+    except NameError:
+        xrange = range
     for i in xrange(len(primes)):
         prod *= int(primes[i])
     if prod >= 1<<512:
