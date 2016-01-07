@@ -8,8 +8,10 @@ def main(file, primes):
     known_file_magics = ['\xde\xad\xbe\xef\x04', '\x00\x00\x00\x00\x04']
 
     prod = 1
-    for i in xrange(len(primes)):
-        prod *= int(primes[i])
+    for p in primes:
+        if int(p) >= 1<<256:
+            return "Factor too large: %s" % p
+        prod *= int(p)
     
     with open(file, "rb") as f:
         header = f.read(414)
