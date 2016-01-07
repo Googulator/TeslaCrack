@@ -31,8 +31,10 @@ def main(addr, primes):
         xrange
     except NameError:
         xrange = range
-    for i in xrange(len(primes)):
-        prod *= int(primes[i])
+    for p in primes:
+        if int(p) >= 1<<256:
+            return "Factor too large: %s" % p
+        prod *= int(p)
     if prod >= 1<<512:
         return "Superfluous factors or incorrect factorization detected!"
     
