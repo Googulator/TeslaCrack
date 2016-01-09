@@ -19,9 +19,9 @@
 
 from __future__ import print_function
 try:
-    from coinkit.keypair import BitcoinKeypair
-except ImportError:
     from pybitcoin.keypair import BitcoinKeypair
+except ImportError:
+    from coinkit.keypair import BitcoinKeypair
 import sys
 
 def main(addr, primes):
