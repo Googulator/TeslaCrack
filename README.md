@@ -33,7 +33,7 @@ with pycryptodome installed. If you don't yet have a working Python environment,
    <code>easy_install pip</code><br />
    <code>pip install pycryptodome</code><br />
    <code>pip install ecdsa</code> (optional, needed only for unfactor_ecdsa.py)<br />
-   <code>pip install coinkit</code> (optional, needed only for unfactor_bitcoin.py)
+   <code>pip install pybitcoin</code> (optional, needed only for unfactor_bitcoin.py)
 
 In addition, you need a program for factoring large numbers.
 For this purpose, I recommend using Msieve and the factmsieve.py wrapper.
