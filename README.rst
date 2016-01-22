@@ -1,6 +1,13 @@
 #####################################################
 TeslaCrack - decryptor for the TeslaCrypt ransomeware
 #####################################################
+|pypi-ver| |flattr-donate| |btc-donate|
+
+:Date:        2016-01-22
+:Source:      https://github.com/Googulator/TeslaCrack
+:Author:      Googulator
+
+
 
 This is a tool for decrypting files that were encrypted with the latest version
 (variously known as "v8" or "v2.2.0") of the **TeslaCrypt ransomware**.
@@ -92,8 +99,8 @@ Install TeslaCrypt
    in a few hours, with some unlucky keys possibly taking up to a week.
 
 
-How to decrypt your ``.vvv`` files
-==================================
+How to decrypt your ``.vvv`` or ``.ccc`` files
+==============================================
 
 1. Collect an encrypted file from the attacked machine in your *working folder*.
    Choose a file with a known initial magic number - ``unfactor.py`` is pre-configured
@@ -213,11 +220,15 @@ And now, for some controversy...
 
 The same day this happened, Kaspersky released this article: https://blog.kaspersky.com/teslacrypt-strikes-again/10860/
 
-.. image:: https://img.shields.io/badge/flattr-donate-yellow.svg
+|flattr-donate| |btc-donate|
+
+
+.. |flattr-donate| image:: https://img.shields.io/badge/flattr-donate-yellow.svg
     :alt: Donate to this project using Flattr
     :target: https://flattr.com/profile/Googulator
     :class: badge-flattr
-.. image:: https://img.shields.io/badge/bitcoin-donate-yellow.svg
+.. |btc-donate| image:: https://img.shields.io/badge/bitcoin-donate-yellow.svg
     :alt: Donate once-off to this project using Bitcoin
     :target: bitcoin:1AdcYneBgky3yMP7d2snQ5wznbWKzULezj
     :class: badge-bitcoin
+.. |pypi-ver| image:: https://img.shields.io/badge/python-2.7%2B%2C%203.4%2B-blue.svg
