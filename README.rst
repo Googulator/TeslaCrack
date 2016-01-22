@@ -86,7 +86,7 @@ How to decrypt your ``.vvv`` files
    (your working folder).
 
 3. If the extension of your encrypted files is not ``.vvv``, edit ``teslacrack.py``
-   to match it.
+   to append  into ``tesla_extensions`` string-list.
 
 4. Then enter this command in your working folder to process your encrypted file
    (notice the ``.`` at the end, or you may use the name of your encrypted file)::
@@ -158,14 +158,16 @@ How to decrypt your ``.vvv`` files
 
         python teslacrack.py C:\\
 
-    * Some machines may show multiple private keys (i.e. if you had rebooted while
+    - Some machines may show multiple private keys (i.e. if you had rebooted while
       infection was running); ``teslacrack.py`` will warn you for this, and
       it will print in the end any unknown private key(s) it has encountered.
       If this happens, repeat all steps for the newly found key(s).
-    * ``teslacrack.py`` takes an optional ``--delete`` parameter, which will delete
+    - ``teslacrack.py`` takes an optional ``--delete`` parameter, which will delete
       the encrypted copies of any file it successfully decrypts.
       Before using this option, make sure that your files are  indeed decrypted
       correctly!
+    - And extra ``-v`` option enables verbose logging, listing every file being visited.
+      Oherwise, only failures will be reported.
 
 
 And now, for some controversy...
