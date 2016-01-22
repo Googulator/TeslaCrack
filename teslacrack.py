@@ -109,14 +109,14 @@ def log_unknown_keys():
     if unknown_keys:
         msgs = ["    key: %r \n      file: %r" % (key.decode(), fpath)
                 for key, fpath in unknown_keys.items()]
-        log.info("Encountered %i unknown AES key(s): \n%s"
-                "\n  Please crack them using `msieve`!",
+        log.info("Encountered %i encryptes AES key(s): \n%s"
+                "\n  Please use `msieve` to crack them!",
                 len(unknown_keys), '\n'.join(msgs))
         msgs = ["    key: %r \n      file: %r" % (key.decode(), fpath)
                 for key, fpath in unknown_btkeys.items()]
     if unknown_btkeys:
         log.info("Alternatively, you may crack these %i Bitcoin key(s) "
-                "using `msieve`, and use them with `TeslaDecoder`: \n%s",
+                "using `msieve`, and then `TeslaDecoder`: \n%s",
                 len(unknown_btkeys), '\n'.join(msgs))
 
 

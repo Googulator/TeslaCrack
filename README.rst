@@ -16,11 +16,11 @@ factoring tool such as [YAFU or msieve](https://www.google.com/search?q=msieve+f
 
 Two files are included:
 
-- ``teslacrack.py``:  it parses ``.vvv`` file headers, identifies their public keys,
-  and for files where the corresponding private key is already known,
-  performs the actual decryption.
-- ``unfactor.py``: it reconstructs the private key from the previously found factors
-  of the public key.
+- ``teslacrack.py``: parses ``.vvv`` file headers, extracts their encrypted-AES-keys,
+  and if their corresponding session-key has already been reconstructed earlier
+  (by following the steps described below), it decrypts those files.
+- ``unfactor.py``: reconstructs the session-key from the previously found factors
+  of the encrypted-AES-key.
 
 This utility requires a working Python environment (2.7.x or 3.4.x recommended,
 tested with 2.7.11 & WinPython-3.4.3), with pycryptodome installed.
@@ -63,8 +63,8 @@ If you don't yet have a working Python environment, do the following:
 In addition, you need a program for factoring large numbers.
 For this purpose, I recommend using Msieve and the factmsieve.py wrapper.
 Run the factorization on a fast computer, as it can take a lot of processing power.
-On a modern dual-core machine, most TeslaCrypt keys can be factorized in a few hours,
-with some unlucky keys possibly taking up to a week.
+On a modern dual-core machine, most encrypted AES-session-keys can be factorized
+in a few hours, with some unlucky keys possibly taking up to a week.
 
 
 How to decrypt your ``.vvv`` files
@@ -93,7 +93,7 @@ How to decrypt your ``.vvv`` files
 
        python teslacrack.py .
 
-   It will print out two hex numbers.  **The first number is your AES public key**.
+   It will print out two hex numbers.  **The first number is encrypted-AES-key**.
 
    - If you get an error message, make sure that you have Python and *pycrypto* installed.
      See instructions above.
@@ -106,7 +106,7 @@ How to decrypt your ``.vvv`` files
 
    - Using *msieve*::
 
-         msieve -v -e 0x\<public key from teslacrack.py>
+         msieve -v -e 0x\<encrypted-AES key from teslacrack.py>
 
      The ``-e`` switch is needed to do a "deep" elliptic curve search,
      which speeds up *msieve* for numbers with many factors (by default,
@@ -119,17 +119,17 @@ How to decrypt your ``.vvv`` files
      run slow), use ``factmsieve.py`` (downloaded optionally above), which is
      more complicated, but also faster, multithreaded, and doesn't tend to crash.
 
-7. To reconstruct the AES private-key that has encrypted your files, run::
+7. To reconstruct the AES-session-key that has encrypted your files, run::
 
        python unfactor.py  <encrypted file>  <primes from previous step, separated by spaces>
 
-   It will print out any private-key candidates found (usually just one).
+   It will print out any session-key candidates found (usually just one).
 
    - Sometimes, ``unfactor.py`` will print the same candidate multiple times.
      This is a known bug, please disregard it.
    - Alternatively, you can use ``unfactor_ecdsa.py`` to get your keys - this is slower,
      and requires the *ecdsa* Python module to be installed; however,
-     unlike ``unfactor.py``, it can also reconstruct Bitcoin private keys
+     unlike ``unfactor.py``, it can also reconstruct Bitcoin private-keys
      (to be used with TeslaDecoder), not just AES ones. Also, ``unfactor_ecdsa.py``
      is guaranteed to always yield only correct keys, and can recover keys
      even from files without known magic numbers, while ``unfactor.py`` is
@@ -147,20 +147,20 @@ How to decrypt your ``.vvv`` files
      Note that ``teslacrack.py`` can't decode the file format used by old TeslaCrypt,
      so you will need to perform the actual decryption using *TeslaDecoder*.
 
-8. Edit ``teslacrack.py``, and add your public and private AES key-pair to the
-   ``known_keys`` array.
+8. Edit ``teslacrack.py``, and add your encrypted and reconstructed AES session
+   key-pair(s) into the ``known_keys`` array.
 
 9. Repeat step 4. The decrypted file should appear next to the encrypted ``.vvv`` file;
    verify that it was decrypted correctly. If not, redo steps 7-8 with
-   the other candidate keys from ``unfactor.py``.
+   the other candidate AES-session-keys from ``unfactor.py``.
 
 10. To decrypt all of your files run from an administrator command prompt::
 
         python teslacrack.py C:\\
 
-    - Some machines may show multiple private keys (i.e. if you had rebooted while
+    - Some machines may show multiple AES-session-keys (i.e. if you had rebooted while
       infection was running); ``teslacrack.py`` will warn you for this, and
-      it will print in the end any unknown private key(s) it has encountered.
+      it will print in the end any encrypted AES-key(s) it has encountered.
       If this happens, repeat all steps for the newly found key(s).
     - ``teslacrack.py`` takes an optional ``--delete`` parameter, which will delete
       the encrypted copies of any file it successfully decrypts.
