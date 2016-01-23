@@ -184,8 +184,6 @@ def main(args):
             delete = True
         elif arg == "--delete-old":
             delete = delete_old = True
-        elif arg == "--delete-old":
-            overwrite = True
         elif arg == "--overwrite":
             overwrite = True
         elif arg == "-v":
