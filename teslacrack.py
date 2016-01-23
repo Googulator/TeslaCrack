@@ -80,9 +80,10 @@ def decrypt_file(path):
                         fix_key(known_keys[header[0x108:0x188].rstrip(b'\0')]),
                         AES.MODE_CBC, header[0x18a:0x19a])
                 size = struct.unpack('<I', header[0x19a:0x19e])[0]
-                fout = open(os.path.splitext(path)[0], 'wb')
-                data = fin.read()
-                fout.write(decryptor.decrypt(data)[:size])
+                with open(os.path.splitext(path)[0], 'wb') as fout:
+                    for b in iter(lambda: fin.read(2**16), b''):
+                        fout.write(decryptor.decrypt(b)[:size])
+                        size -= len(b)
                 if delete:
                     do_unlink = True
                 decrypt_nfiles +=1
