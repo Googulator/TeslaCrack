@@ -219,6 +219,9 @@ How to decrypt your ``.vvv`` or ``.ccc`` files
    - By skipping this time the ``-v`` option (verbose logging) you avoid listing
      every file being visited - only failures and totals are reported.
 
+   - Use ``--overwrite`` if the previous decryptions had failed and want to
+     re-decrypt all files with new key(s).
+
 
 And now, for some controversy...
 ================================

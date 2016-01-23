@@ -9,6 +9,15 @@
 #
 # This script requires pycrypto to be installed.
 #
+#EXAMPLES:
+#
+# python teslacrack -v                          ## Decrypts current-folder, logging verbosely.
+# python teslacrack .  bar\cob.xlsx             ## Decrypts current-folder & file(s).
+# python teslacrack foo.pdf.cc  bar\cob.xlsx  C:\
+# python teslacrack C:\\ --overwrite            ## Overwirte already decrypted files.
+# python teslacrack C:\\ --overwrite --delete   ## Delete encrypted-files after decrypting them.
+# python teslacrack C:\\ --delete-old           ## WILL DELETE ALL `.vvv` files!!!
+#
 # Enjoy! ;)
 
 import logging
@@ -34,12 +43,18 @@ tesla_extensions = ['.vvv', '.ccc']  # Add more known extensions.
 
 known_file_magics = [b'\xde\xad\xbe\xef\x04', b'\x00\x00\x00\x00\x04']
 
-delete = False
-delete_old = False
-verbose = False
+## CMD-OPTIONS
+##
+delete = False      # Delete encrypted-files after decrypting them.
+delete_old = False  # Like `delete`, even if not decrypting it (existed from previous runs).
+overwrite = False   # Overwirte already decrypted files.
+verbose = False     # Verbosely log(DEBUG) all files visited.
 
 unknown_keys = {}
 unknown_btkeys = {}
+
+## STATS
+#
 nfiles = 0
 decrypt_nfiles = 0
 del_nfiles = 0
@@ -74,8 +89,10 @@ def decrypt_file(path):
                 return
 
 
-            if not os.path.exists(os.path.splitext(path)[0]):
-                log.debug("Decrypting: %s", path)
+            decrypt_existed = os.path.exists(os.path.splitext(path)[0])
+            if overwrite or not decrypt_existed:
+                log.debug("Decrypting%s: %s",
+                        '(overwrite)' if decrypt_existed else '', path,)
                 decryptor = AES.new(
                         fix_key(known_keys[header[0x108:0x188].rstrip(b'\0')]),
                         AES.MODE_CBC, header[0x18a:0x19a])
@@ -84,7 +101,7 @@ def decrypt_file(path):
                     for b in iter(lambda: fin.read(2**16), b''):
                         fout.write(decryptor.decrypt(b)[:size])
                         size -= len(b)
-                if delete:
+                if delete and not decrypt_existed or delete_old:
                     do_unlink = True
                 decrypt_nfiles +=1
             else:
@@ -131,8 +148,8 @@ def log_unknown_keys():
 
 
 def main(args):
-    fpath = '.'
-    global verbose, delete, delete_old
+    global verbose, delete, delete_old, overwrite
+    fpaths = []
 
     log_level = logging.INFO
     for arg in args:
@@ -140,16 +157,23 @@ def main(args):
             delete = True
         elif arg == "--delete-old":
             delete = delete_old = True
+        elif arg == "--delete-old":
+            overwrite = True
+        elif arg == "--overwrite":
+            overwrite = True
         elif arg == "-v":
             log_level = logging.DEBUG
             verbose = True
         else:
-            fpath = arg
+            fpaths.append(arg)
 
     frmt = "%(asctime)-15s:%(levelname)5.5s: %(message)s"
     logging.basicConfig(level=log_level, format=frmt)
 
-    traverse_directory(fpath)
+    if not fpaths:
+        fpaths.append('.')
+    for f in fpaths:
+        traverse_directory(f)
 
     log_unknown_keys()
     fail_nfiles = (nfiles - decrypt_nfiles - skip_nfiles)
