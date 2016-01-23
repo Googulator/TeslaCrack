@@ -203,7 +203,7 @@ How to decrypt your ``.vvv`` or ``.ccc`` files
         python teslacrack.py D:\\
 
    - In some cases you may start receiving error-messages, saying
-     ``"Cannot decrypt 'file/path', unknown key!"``.
+     ``"Unknown key in file: some/file"``.
      This means that some of your files have been encrypted with different
      AES-keys (i.e. the ransomware had been restarted due to a reboot).
      ``teslacrack.py`` will print at the end any new encrypted AES-key(s)

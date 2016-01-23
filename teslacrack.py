@@ -25,6 +25,7 @@ import os
 from os.path import join as pjoin
 import struct
 import sys
+import time
 
 from Crypto.Cipher import AES
 
@@ -43,8 +44,6 @@ tesla_extensions = ['.vvv', '.ccc']  # Add more known extensions.
 
 known_file_magics = [b'\xde\xad\xbe\xef\x04', b'\x00\x00\x00\x00\x04']
 
-REPORT_PROGRESS_NFILES = 200 # Log stats every that many files processed.
-
 ## CMD-OPTIONS
 ##
 delete = False      # Delete encrypted-files after decrypting them.
@@ -57,10 +56,11 @@ unknown_btkeys = {}
 
 ## STATS
 #
-nfiles = 0
-decrypt_nfiles = 0
-del_nfiles = 0
-skip_nfiles = 0
+visit_nfiles = bad_nfiles = encrypt_nfiles = decrypt_nfiles = overwrite_nfiles = 0
+deleted_nfiles = skip_nfiles = unknown_nfiles = failed_nfiles = 0
+
+PROGRESS_INTERVAL_SEC = 10 # Log stats every that many files processed.
+last_progress_time = time.time()
 
 def fix_key(key):
     while key[0] == b'\0':
@@ -69,12 +69,10 @@ def fix_key(key):
 
 
 def decrypt_file(path):
-    global nfiles, decrypt_nfiles, skip_nfiles, del_nfiles
+    global encrypt_nfiles, decrypt_nfiles, skip_nfiles, deleted_nfiles, \
+            failed_nfiles, unknown_nfiles, overwrite_nfiles
 
-    nfiles += 1
-    if nfiles % REPORT_PROGRESS_NFILES == 0:
-        log_stats()
-        log_unknown_keys()
+    encrypt_nfiles += 1
     try:
         do_unlink = False
         with open(path, "rb") as fin:
@@ -85,12 +83,15 @@ def decrypt_file(path):
                 skip_nfiles += 1
                 return
 
-            if header[0x108:0x188].rstrip(b'\0') not in known_keys:
-                if header[0x108:0x188].rstrip(b'\0') not in unknown_keys:
-                    unknown_keys[header[0x108:0x188].rstrip(b'\0')] = path
-                if header[0x45:0xc5].rstrip(b'\0') not in unknown_btkeys:
-                    unknown_btkeys[header[0x45:0xc5].rstrip(b'\0')] = path
-                log.error("Cannot decrypt %r, unknown key!", path)
+            aes_encrypted_key = header[0x108:0x188].rstrip(b'\0')
+            if aes_encrypted_key not in known_keys:
+                if aes_encrypted_key not in unknown_keys:
+                    unknown_keys[aes_encrypted_key] = path
+                btc_key = header[0x45:0xc5].rstrip(b'\0')
+                if btc_key not in unknown_btkeys:
+                    unknown_btkeys[btc_key] = path
+                log.error("Unknown key in file: %s", path)
+                unknown_nfiles += 1
                 return
 
 
@@ -99,64 +100,78 @@ def decrypt_file(path):
                 log.debug("Decrypting%s: %s",
                         '(overwrite)' if decrypt_existed else '', path,)
                 decryptor = AES.new(
-                        fix_key(known_keys[header[0x108:0x188].rstrip(b'\0')]),
+                        fix_key(known_keys[aes_encrypted_key]),
                         AES.MODE_CBC, header[0x18a:0x19a])
                 size = struct.unpack('<I', header[0x19a:0x19e])[0]
-                with open(os.path.splitext(path)[0], 'wb') as fout:
-                    for b in iter(lambda: fin.read(2**16), b''):
-                        fout.write(decryptor.decrypt(b)[:size])
-                        size -= len(b)
+                fout = open(os.path.splitext(path)[0], 'wb')
+                data = fin.read()
+                fout.write(decryptor.decrypt(data)[:size])
                 if delete and not decrypt_existed or delete_old:
                     do_unlink = True
-                decrypt_nfiles +=1
+                decrypt_nfiles += 1
+                overwrite_nfiles += decrypt_existed
             else:
                 log.debug("Skip decrypting %r, decrypted-copy already exists.", path)
-                skip_nfiles +=1
+                skip_nfiles += 1
                 if delete_old:
                     do_unlink = True
         if do_unlink:
             os.unlink(path)
-            del_nfiles += 1
+            deleted_nfiles += 1
     except Exception as e:
+        failed_nfiles += 1
         log.error("Error decrypting %r due to %r!  Please try again.",
                 path, e, exc_info=verbose)
 
 
 def traverse_directory(fpath):
-    global nfiles
+    global visit_nfiles, bad_nfiles, last_progress_time
+
+    if time.time() - last_progress_time > PROGRESS_INTERVAL_SEC:
+        last_progress_time = time.time()
+        log_stats()
+        log_unknown_keys()
 
     try:
         if os.path.isfile(fpath):
+            visit_nfiles += 1
             if os.path.splitext(fpath)[1] in tesla_extensions:
                 decrypt_file(fpath)
         else:
             for child in os.listdir(fpath):
                 traverse_directory(pjoin(fpath, child))
     except Exception as e:
-        nfiles += 1
+        bad_nfiles += 1
         log.error("Cannot access %r due to: %r", fpath, e, exc_info=verbose)
 
 
 def log_unknown_keys():
     if unknown_keys:
-        msgs = ["    key: %r \n      file: %r" % (key.decode(), fpath)
-                for key, fpath in unknown_keys.items()]
-        log.info("Encountered %i encryptes AES key(s): \n%s"
-                "\n  Please use `msieve` to crack them!",
-                len(unknown_keys), '\n'.join(msgs))
-        msgs = ["    key: %r \n      file: %r" % (key.decode(), fpath)
-                for key, fpath in unknown_btkeys.items()]
-        log.info("Alternatively, you may crack these %i Bitcoin key(s) "
-                "using `msieve`, and then `TeslaDecoder`: \n%s",
-                len(unknown_btkeys), '\n'.join(msgs))
+        #assert len(unknown_keys) == len(unknown_btkeys, ( unknown_keys, unknown_btkeys)
+        aes_keys = dict((fpath, key) for key, fpath in unknown_keys.items())
+        btc_keys = dict((fpath, key) for key, fpath in unknown_btkeys.items())
+        key_msgs = ["     AES: %r\n     BTC: %r\n    File: %r" %
+                (aes_key.decode(), btc_keys.get(fpath, b'').decode(), fpath)
+                for fpath, aes_key in aes_keys.items()]
+        log.info("+++Unknown key(s) encountered: %i \n%s\n"
+                "  Use `msieve` on AES-key(s), or `msieve` + `TeslaDecoder` on Bitcoin-key(s) to crack them!",
+                len(unknown_keys), '\n'.join(key_msgs))
 
 
 def log_stats():
-    fail_nfiles = (nfiles - decrypt_nfiles - skip_nfiles)
-    log.info("+++Processed files: "
-            "\n  total  :%5i\n    decrypt:%5i\n    skip   :%5i\n    fail   :%5i"
-            "\n  delete :%5i.",
-        nfiles, decrypt_nfiles, skip_nfiles, fail_nfiles, del_nfiles)
+    log.info("+++Files processed: "
+            "\n    visited: %7i"
+            "\n        bad:%5i"
+            "\n  encrypted:%5i"
+            "\n    decrypted:%5i"
+            "\n    overwritten:%5i"
+            "\n      deleted:%5i"
+            "\n      skipped:%5i"
+            "\n      unknown:%5i"
+            "\n       failed:%5i",
+        visit_nfiles, bad_nfiles, encrypt_nfiles, decrypt_nfiles,
+        overwrite_nfiles, deleted_nfiles, skip_nfiles, unknown_nfiles,
+        failed_nfiles)
 
 
 def main(args):
@@ -179,7 +194,7 @@ def main(args):
         else:
             fpaths.append(arg)
 
-    frmt = "%(asctime)-15s:%(levelname)5.5s: %(message)s"
+    frmt = "%(asctime)-15s:%(levelname)3.3s: %(message)s"
     logging.basicConfig(level=log_level, format=frmt)
 
     if not fpaths:
