@@ -68,6 +68,16 @@ def fix_key(key):
     return key
 
 
+def needs_decryption(fname, exp_size, overwrite):
+    fexists = os.path.isfile(fname)
+    if fexists and not overwrite:
+        disk_size = os.stat(fname).st_size
+        if disk_size != exp_size:
+            overwrite = True
+            log.warn("Corrupted file(disk_size(%i) != %i) will be overwritten: %s",
+                    disk_size, exp_size, fname)
+    return fexists, overwrite
+
 def decrypt_file(path):
     global encrypt_nfiles, decrypt_nfiles, skip_nfiles, deleted_nfiles, \
             failed_nfiles, unknown_nfiles, overwrite_nfiles
@@ -90,28 +100,29 @@ def decrypt_file(path):
                 btc_key = header[0x45:0xc5].rstrip(b'\0')
                 if btc_key not in unknown_btkeys:
                     unknown_btkeys[btc_key] = path
-                log.error("Unknown key in file: %s", path)
+                log.warn("Unknown key in file: %s", path)
                 unknown_nfiles += 1
                 return
 
 
-            decrypt_existed = os.path.exists(os.path.splitext(path)[0])
-            if overwrite or not decrypt_existed:
+            size = struct.unpack('<I', header[0x19a:0x19e])[0]
+            orig_fname = os.path.splitext(path)[0]
+            decrypt_exists, my_overwrite = needs_decryption(orig_fname, size, overwrite)
+            if my_overwrite or not decrypt_exists:
                 log.debug("Decrypting%s: %s",
-                        '(overwrite)' if decrypt_existed else '', path,)
+                        '(overwrite)' if decrypt_exists else '', path,)
                 decryptor = AES.new(
                         fix_key(known_keys[aes_encrypted_key]),
                         AES.MODE_CBC, header[0x18a:0x19a])
-                size = struct.unpack('<I', header[0x19a:0x19e])[0]
-                fout = open(os.path.splitext(path)[0], 'wb')
+                fout = open(orig_fname, 'wb')
                 data = fin.read()
                 fout.write(decryptor.decrypt(data)[:size])
-                if delete and not decrypt_existed or delete_old:
+                if delete and not decrypt_exists or delete_old:
                     do_unlink = True
                 decrypt_nfiles += 1
-                overwrite_nfiles += decrypt_existed
+                overwrite_nfiles += decrypt_exists
             else:
-                log.debug("Skip decrypting %r, decrypted-copy already exists.", path)
+                log.debug("Skip decrypting %r, decrypted-file already exists.", path)
                 skip_nfiles += 1
                 if delete_old:
                     do_unlink = True
