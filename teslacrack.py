@@ -114,9 +114,9 @@ def decrypt_file(path):
                 decryptor = AES.new(
                         fix_key(known_keys[aes_encrypted_key]),
                         AES.MODE_CBC, header[0x18a:0x19a])
-                fout = open(orig_fname, 'wb')
-                data = fin.read()
-                fout.write(decryptor.decrypt(data)[:size])
+                data = decryptor.decrypt(fin.read())[:size]
+                with open(orig_fname, 'wb') as fout:
+                    fout.write(data)
                 if delete and not decrypt_exists or delete_old:
                     do_unlink = True
                 decrypt_nfiles += 1
