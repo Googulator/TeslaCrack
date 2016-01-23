@@ -222,6 +222,11 @@ How to decrypt your ``.vvv`` or ``.ccc`` files
    - Use ``--overwrite`` if the previous decryptions had failed and want to
      re-decrypt all files with new key(s).
 
+   - If you are going to decrypt 1000s of file (i.e ``D:\\``), it's worth
+     using the ``--precount`` option; it will consume some initial time to
+     pre-calculate directories to be visited, and then a progress-indicator
+     will be printed while decrypting.
+
 
 And now, for some controversy...
 ================================

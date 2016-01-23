@@ -56,10 +56,12 @@ unknown_btkeys = {}
 
 ## STATS
 #
+ndirs = -1
+visited_ndirs = 0
 visit_nfiles = bad_nfiles = encrypt_nfiles = decrypt_nfiles = overwrite_nfiles = 0
 deleted_nfiles = skip_nfiles = unknown_nfiles = failed_nfiles = 0
 
-PROGRESS_INTERVAL_SEC = 10 # Log stats every that many files processed.
+PROGRESS_INTERVAL_SEC = 7 # Log stats every that many files processed.
 last_progress_time = time.time()
 
 def fix_key(key):
@@ -122,7 +124,7 @@ def decrypt_file(path):
                 decrypt_nfiles += 1
                 overwrite_nfiles += decrypt_exists
             else:
-                log.debug("Skip decrypting %r, decrypted-file already exists.", path)
+                log.debug("Skip %r, already decrypted.", path)
                 skip_nfiles += 1
                 if delete_old:
                     do_unlink = True
@@ -134,13 +136,18 @@ def decrypt_file(path):
         log.error("Error decrypting %r due to %r!  Please try again.",
                 path, e, exc_info=verbose)
 
-
-def traverse_directory(fpath):
-    global visit_nfiles, bad_nfiles, last_progress_time
-
+def is_progess_time():
+    global last_progress_time
     if time.time() - last_progress_time > PROGRESS_INTERVAL_SEC:
         last_progress_time = time.time()
-        log_stats()
+        return True
+
+
+def traverse_directory(fpath):
+    global visit_nfiles, bad_nfiles, last_progress_time,visited_ndirs
+
+    if is_progess_time():
+        log_stats(fpath)
         log_unknown_keys()
 
     try:
@@ -149,12 +156,23 @@ def traverse_directory(fpath):
             if os.path.splitext(fpath)[1] in tesla_extensions:
                 decrypt_file(fpath)
         else:
+            visited_ndirs += 1
             for child in os.listdir(fpath):
                 traverse_directory(pjoin(fpath, child))
     except Exception as e:
         bad_nfiles += 1
         log.error("Cannot access %r due to: %r", fpath, e, exc_info=verbose)
 
+
+def count_subdirs(fpaths):
+    n = 0
+    log.info("+++Counting dirs...")
+    for f in fpaths:
+        for _ in os.walk(f):
+            if is_progess_time():
+                log.info("+++Counting dirs: %i...", n)
+            n += 1
+    return n
 
 def log_unknown_keys():
     if unknown_keys:
@@ -169,8 +187,14 @@ def log_unknown_keys():
                 len(unknown_keys), '\n'.join(key_msgs))
 
 
-def log_stats():
-    log.info("+++Files processed: "
+def log_stats(fpath=''):
+    if fpath:
+        fpath = ': %r' % os.path.dirname(fpath)
+    dir_progress = ''
+    if ndirs > 0:
+        prcnt = 100 * visited_ndirs / ndirs
+        dir_progress = ' of %i(%0.2f%%)' % (ndirs, prcnt)
+    log.info("+++Dir %i%s%s"
             "\n    visited: %7i"
             "\n        bad:%5i"
             "\n  encrypted:%5i"
@@ -180,13 +204,14 @@ def log_stats():
             "\n      skipped:%5i"
             "\n      unknown:%5i"
             "\n       failed:%5i",
-        visit_nfiles, bad_nfiles, encrypt_nfiles, decrypt_nfiles,
-        overwrite_nfiles, deleted_nfiles, skip_nfiles, unknown_nfiles,
-        failed_nfiles)
+        visited_ndirs, dir_progress, fpath, visit_nfiles, bad_nfiles, encrypt_nfiles,
+        decrypt_nfiles, overwrite_nfiles, deleted_nfiles, skip_nfiles,
+        unknown_nfiles, failed_nfiles)
 
 
 def main(args):
-    global verbose, delete, delete_old, overwrite
+    global verbose, delete, delete_old, overwrite, ndirs
+    precount = False
     fpaths = []
 
     log_level = logging.INFO
@@ -197,6 +222,8 @@ def main(args):
             delete = delete_old = True
         elif arg == "--overwrite":
             overwrite = True
+        elif arg == "--precount":
+            precount = True
         elif arg == "-v":
             log_level = logging.DEBUG
             verbose = True
@@ -208,6 +235,9 @@ def main(args):
 
     if not fpaths:
         fpaths.append('.')
+
+    if precount:
+        ndirs = count_subdirs(fpaths)
     for f in fpaths:
         traverse_directory(f)
 
