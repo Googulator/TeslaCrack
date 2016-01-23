@@ -37,12 +37,13 @@ that is relevant for this cracking tool:
 - Multiple AES-keys are generated if you interrupt the ransomware while it encrypts
   your files (i.e. reboot).
 
-*TeslaCrack* implements an integer factorization attack against TeslaCrypt's asymmetric encryption
-scheme. The actual factorization is not implemented within *TeslaCrack*, instead,
+*TeslaCrack* implements (primarily) an integer factorization attack against
+the symmetric AES-key.
+The actual factorization is not implemented within *TeslaCrack*, instead,
 it extracts the numbers to be factored, which you will need to feed them into existing
 factoring tool, such as `YAFU or msieve <https://www.google.com/search?q=msieve+factorization>`_.
 
-Two files are included:
+The files performing most of the job are these two:
 
 - ``teslacrack.py``: parses the headers from ``.vvv`` (or ``.ccc``) files,
   extracts their encrypted-AES-keys, and if their corresponding session-key

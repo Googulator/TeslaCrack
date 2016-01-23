@@ -73,13 +73,13 @@ def decrypt_file(path):
                 log.error("Cannot decrypt %r, unknown key!", path)
                 return
 
-            decryptor = AES.new(
-                    fix_key(known_keys[header[0x108:0x188].rstrip(b'\0')]),
-                    AES.MODE_CBC, header[0x18a:0x19a])
-            size = struct.unpack('<I', header[0x19a:0x19e])[0]
 
             if not os.path.exists(os.path.splitext(path)[0]):
                 log.debug("Decrypting: %s", path)
+                decryptor = AES.new(
+                        fix_key(known_keys[header[0x108:0x188].rstrip(b'\0')]),
+                        AES.MODE_CBC, header[0x18a:0x19a])
+                size = struct.unpack('<I', header[0x19a:0x19e])[0]
                 fout = open(os.path.splitext(path)[0], 'wb')
                 data = fin.read()
                 fout.write(decryptor.decrypt(data)[:size])
