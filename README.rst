@@ -133,7 +133,7 @@ How to decrypt your ``.vvv`` or ``.ccc`` files
    - If you get an error message, make sure that you have Python and *pycryptodome* installed
      (see instructions above).
 
-4. Convert your hexadecimal AES-key to decimal, e.g. in python type ``int('ae1b015a', 16)``,
+4. Convert your hexadecimal AES-key to decimal, e.g. in python use ``int('ae1b015a', 16)``,
    and search `factordb.com <http://factordb.com/>`_ for this number. If you are lucky,
    it may have been already factored, and you can skip the next step :-)
 
@@ -186,7 +186,7 @@ How to decrypt your ``.vvv`` or ``.ccc`` files
      Note that ``teslacrack.py`` can't decode the file format used by old TeslaCrypt,
      so you will need to perform the actual decryption using *TeslaDecoder*.
 
-7. Edit ``teslacrack.py``, and add a new key-pair into the ``known_keys`` array
+7. Edit ``teslacrack.py``to add a new key-pair into the ``known_keys`` array
    like that::
 
       <encrypted-AES-key>: <1st decrypted-AES-key candidate>,
@@ -201,15 +201,18 @@ How to decrypt your ``.vvv`` or ``.ccc`` files
 
         python teslacrack.py D:\\
 
-   - In some cases you may start receiving error-messages, saying ``"Cannot decrypt 'file/path', unknown key!"``.
-     That means that some of your files have been encrypted with different AES-keys
-     (i.e. you had interrupted the infection with a reboot?).
-     ``teslacrack.py`` will print at the end all new encrypted AES-key(s) -
-     repeat procedure from step 4 for all newly discovered key(s) :-(
+   - In some cases you may start receiving error-messages, saying
+     ``"Cannot decrypt 'file/path', unknown key!"``.
+     This means that some of your files have been encrypted with different
+     AES-keys (i.e. the ransomware had been restarted due to a reboot).
+     ``teslacrack.py`` will print at the end any new encrypted AES-key(s)
+     encountered - repeat the procedure from step 4 for all newly discovered
+     key(s) :-(
 
-   - ``teslacrack.py`` accepts an optional ``--delete`` parameter, which will delete
-     the encrypted copies of any file it successfully decrypts.
-     Before using this option, make sure that your files are  indeed decrypted
+   - ``teslacrack.py`` accepts an optional ``--delete`` and ``--delete-old``
+     parameters, which will delete the encrypted copies of any file it
+     successfully decrypts (or already decrypted, the 2nd option).
+     Before using this option, make sure that your files are indeed decrypted
      correctly!
 
    - By skipping this time the ``-v`` option (verbose logging) you avoid listing

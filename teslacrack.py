@@ -35,12 +35,14 @@ tesla_extensions = ['.vvv', '.ccc']  # Add more known extensions.
 known_file_magics = [b'\xde\xad\xbe\xef\x04', b'\x00\x00\x00\x00\x04']
 
 delete = False
+delete_old = False
 verbose = False
 
 unknown_keys = {}
 unknown_btkeys = {}
 nfiles = 0
-ok_nfiles = 0
+decrypt_nfiles = 0
+del_nfiles = 0
 skip_nfiles = 0
 
 def fix_key(key):
@@ -50,7 +52,7 @@ def fix_key(key):
 
 
 def decrypt_file(path):
-    global nfiles, ok_nfiles, skip_nfiles
+    global nfiles, decrypt_nfiles, skip_nfiles, del_nfiles
 
     nfiles += 1
     try:
@@ -60,6 +62,7 @@ def decrypt_file(path):
 
             if header[:5] not in known_file_magics:
                 log.info("File %r doesn't appear to be TeslaCrypted.", path)
+                skip_nfiles += 1
                 return
 
             if header[0x108:0x188].rstrip(b'\0') not in known_keys:
@@ -82,18 +85,23 @@ def decrypt_file(path):
                 fout.write(decryptor.decrypt(data)[:size])
                 if delete:
                     do_unlink = True
-                ok_nfiles +=1
+                decrypt_nfiles +=1
             else:
                 log.debug("Skip decrypting %r, decrypted-copy already exists.", path)
                 skip_nfiles +=1
+                if delete_old:
+                    do_unlink = True
         if do_unlink:
             os.unlink(path)
+            del_nfiles += 1
     except Exception as e:
         log.error("Error decrypting %r due to %r!  Please try again.",
                 path, e, exc_info=verbose)
 
 
 def traverse_directory(fpath):
+    global nfiles
+
     try:
         if os.path.isfile(fpath):
             if os.path.splitext(fpath)[1] in tesla_extensions:
@@ -102,6 +110,7 @@ def traverse_directory(fpath):
             for child in os.listdir(fpath):
                 traverse_directory(pjoin(fpath, child))
     except Exception as e:
+        nfiles += 1
         log.error("Cannot access %r due to: %r", fpath, e, exc_info=verbose)
 
 
@@ -122,12 +131,14 @@ def log_unknown_keys():
 
 def main(args):
     fpath = '.'
-    global verbose, delete
+    global verbose, delete, delete_old
 
     log_level = logging.INFO
     for arg in args:
         if arg == "--delete":
             delete = True
+        elif arg == "--delete-old":
+            delete = delete_old = True
         elif arg == "-v":
             log_level = logging.DEBUG
             verbose = True
@@ -140,8 +151,11 @@ def main(args):
     traverse_directory(fpath)
 
     log_unknown_keys()
-    log.info('+++Processed files: total(%i), decrypt(%i), skip(%i), fail(%i).',
-        nfiles, ok_nfiles, skip_nfiles, (nfiles - ok_nfiles - skip_nfiles))
+    fail_nfiles = (nfiles - decrypt_nfiles - skip_nfiles)
+    log.info("+++Processed files: "
+            "\n  total  :%5i\n    decrypt:%5i\n    skip   :%5i\n    fail   :%5i"
+            "\n  delete :%5i.",
+        nfiles, decrypt_nfiles, skip_nfiles, fail_nfiles, del_nfiles)
 
 if __name__=='__main__':
     main(sys.argv[1:])
