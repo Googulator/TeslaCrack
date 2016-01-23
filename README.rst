@@ -227,6 +227,9 @@ How to decrypt your ``.vvv`` or ``.ccc`` files
      pre-calculate directories to be visited, and then a progress-indicator
      will be printed while decrypting.
 
+   - Finally, you can "dry-run" all of the above (decrypting and deletion)
+     with ``-n`` option.
+
 
 And now, for some controversy...
 ================================

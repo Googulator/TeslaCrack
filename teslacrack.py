@@ -9,14 +9,20 @@
 #
 # This script requires pycrypto to be installed.
 #
-#EXAMPLES:
+#    python teslacrypt.py [options] [file-path-1]...
 #
-# python teslacrack -v                          ## Decrypts current-folder, logging verbosely.
-# python teslacrack .  bar\cob.xlsx             ## Decrypts current-folder & file(s).
-# python teslacrack foo.pdf.cc  bar\cob.xlsx  C:\
-# python teslacrack C:\\ --overwrite            ## Overwirte already decrypted files.
-# python teslacrack C:\\ --overwrite --delete   ## Delete encrypted-files after decrypting them.
-# python teslacrack C:\\ --delete-old           ## WILL DELETE ALL `.vvv` files!!!
+## OPTIONS
+#    --delete       # Delete encrypted-files after decrypting them.
+#    --delete-old   # Delete encrypted even if decrypted-file created during a previous run
+#    --overwrite    # Re-decrypt and overwirte existing decrypted-files.
+#    -v             # Verbosely log(DEBUG) all files decrypted
+#    -n             # Dry-run: do not decrypt or delete but report logs and stats.
+
+## EXAMPLES:
+#
+#    python teslacrack -v                          ## Decrypts current-folder, logging verbosely.
+#    python teslacrack .  bar\cob.xlsx             ## Decrypts current-folder & file
+#    python teslacrack C:\\ --delete-old           ## WILL DELETE ALL `.vvv` files on disk!!!
 #
 # Enjoy! ;)
 
@@ -46,10 +52,11 @@ known_file_magics = [b'\xde\xad\xbe\xef\x04', b'\x00\x00\x00\x00\x04']
 
 ## CMD-OPTIONS
 ##
-delete = False      # Delete encrypted-files after decrypting them.
-delete_old = False  # Like `delete`, even if not decrypting it (existed from previous runs).
-overwrite = False   # Overwirte already decrypted files.
-verbose = False     # Verbosely log(DEBUG) all files visited.
+delete = False      # --delete
+delete_old = False  # --delete-old
+overwrite = False   # --overwirte
+verbose = False     # -v
+dry_run = False     # -n
 
 unknown_keys = {}
 unknown_btkeys = {}
@@ -117,8 +124,9 @@ def decrypt_file(path):
                         fix_key(known_keys[aes_encrypted_key]),
                         AES.MODE_CBC, header[0x18a:0x19a])
                 data = decryptor.decrypt(fin.read())[:size]
-                with open(orig_fname, 'wb') as fout:
-                    fout.write(data)
+                if not dry_run:
+                    with open(orig_fname, 'wb') as fout:
+                        fout.write(data)
                 if delete and not decrypt_exists or delete_old:
                     do_unlink = True
                 decrypt_nfiles += 1
@@ -129,7 +137,8 @@ def decrypt_file(path):
                 if delete_old:
                     do_unlink = True
         if do_unlink:
-            os.unlink(path)
+            if not dry_run:
+                os.unlink(path)
             deleted_nfiles += 1
     except Exception as e:
         failed_nfiles += 1
@@ -210,7 +219,7 @@ def log_stats(fpath=''):
 
 
 def main(args):
-    global verbose, delete, delete_old, overwrite, ndirs
+    global verbose, delete, delete_old, overwrite, ndirs, dry_run
     precount = False
     fpaths = []
 
@@ -224,6 +233,8 @@ def main(args):
             overwrite = True
         elif arg == "--precount":
             precount = True
+        elif arg == "-n":
+            dry_run = True
         elif arg == "-v":
             log_level = logging.DEBUG
             verbose = True
