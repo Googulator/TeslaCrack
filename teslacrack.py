@@ -43,6 +43,8 @@ tesla_extensions = ['.vvv', '.ccc']  # Add more known extensions.
 
 known_file_magics = [b'\xde\xad\xbe\xef\x04', b'\x00\x00\x00\x00\x04']
 
+REPORT_PROGRESS_NFILES = 200 # Log stats every that many files processed.
+
 ## CMD-OPTIONS
 ##
 delete = False      # Delete encrypted-files after decrypting them.
@@ -70,6 +72,9 @@ def decrypt_file(path):
     global nfiles, decrypt_nfiles, skip_nfiles, del_nfiles
 
     nfiles += 1
+    if nfiles % REPORT_PROGRESS_NFILES == 0:
+        log_stats()
+        log_unknown_keys()
     try:
         do_unlink = False
         with open(path, "rb") as fin:
@@ -141,10 +146,17 @@ def log_unknown_keys():
                 len(unknown_keys), '\n'.join(msgs))
         msgs = ["    key: %r \n      file: %r" % (key.decode(), fpath)
                 for key, fpath in unknown_btkeys.items()]
-    if unknown_btkeys:
         log.info("Alternatively, you may crack these %i Bitcoin key(s) "
                 "using `msieve`, and then `TeslaDecoder`: \n%s",
                 len(unknown_btkeys), '\n'.join(msgs))
+
+
+def log_stats():
+    fail_nfiles = (nfiles - decrypt_nfiles - skip_nfiles)
+    log.info("+++Processed files: "
+            "\n  total  :%5i\n    decrypt:%5i\n    skip   :%5i\n    fail   :%5i"
+            "\n  delete :%5i.",
+        nfiles, decrypt_nfiles, skip_nfiles, fail_nfiles, del_nfiles)
 
 
 def main(args):
@@ -176,11 +188,7 @@ def main(args):
         traverse_directory(f)
 
     log_unknown_keys()
-    fail_nfiles = (nfiles - decrypt_nfiles - skip_nfiles)
-    log.info("+++Processed files: "
-            "\n  total  :%5i\n    decrypt:%5i\n    skip   :%5i\n    fail   :%5i"
-            "\n  delete :%5i.",
-        nfiles, decrypt_nfiles, skip_nfiles, fail_nfiles, del_nfiles)
+    log_stats()
 
 if __name__=='__main__':
     main(sys.argv[1:])
