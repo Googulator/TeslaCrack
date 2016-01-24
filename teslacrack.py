@@ -11,6 +11,8 @@
 #
 #    python teslacrypt.py [options] [file-path-1]...
 #
+# When invoked without any folder specified, working-dir('.') assumed.
+#
 ## OPTIONS
 #    --delete       # Delete encrypted-files after decrypting them.
 #    --delete-old   # Delete encrypted even if decrypted-file created during a previous run
@@ -128,8 +130,9 @@ def decrypt_file(path):
             orig_fname = os.path.splitext(path)[0]
             decrypt_exists, my_overwrite = needs_decryption(orig_fname, size, overwrite)
             if my_overwrite or not decrypt_exists:
-                log.debug("Decrypting%s: %s",
-                        '(overwrite)' if decrypt_exists else '', path,)
+                log.debug("Decrypting%s%s: %s",
+                        '(overwrite)' if decrypt_exists else '',
+                        '(dry-run)' if dry_run else '', path)
                 decryptor = AES.new(
                         fix_key(known_keys[aes_encrypted_key]),
                         AES.MODE_CBC, header[0x18a:0x19a])
@@ -147,6 +150,8 @@ def decrypt_file(path):
                 if delete_old:
                     do_unlink = True
         if do_unlink:
+            log.debug("Deleting%s: %s",
+                    '(dry-run)' if dry_run else '', path)
             if not dry_run:
                 os.unlink(path)
             deleted_nfiles += 1
@@ -214,15 +219,15 @@ def log_stats(fpath=''):
     if ndirs > 0:
         prcnt = 100 * visited_ndirs / ndirs
         dir_progress = ' of %i(%0.2f%%)' % (ndirs, prcnt)
-    log.info("+++Dir %i%s%s"
+    log.info("+++Dir %5i%s%s"
             "\n    visited: %7i"
-            "\n  encrypted:%5i"
-            "\n    decrypted:%5i"
-            "\n    overwritten:%5i"
-            "\n      deleted:%5i"
-            "\n      skipped:%5i"
-            "\n      unknown:%5i"
-            "\n       failed:%5i",
+            "\n  encrypted:%7i"
+            "\n    decrypted:%7i"
+            "\n    overwritten:%7i"
+            "\n      deleted:%7i"
+            "\n      skipped:%7i"
+            "\n      unknown:%7i"
+            "\n       failed:%7i",
         visited_ndirs, dir_progress, fpath, visited_nfiles, encrypt_nfiles,
         decrypt_nfiles, overwrite_nfiles, deleted_nfiles, skip_nfiles,
         unknown_nfiles, failed_nfiles)
