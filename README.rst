@@ -200,7 +200,7 @@ How to decrypt your ``.vvv`` or ``.ccc`` files
 
 9. To decrypt all of your files run from an administrator command prompt::
 
-        python teslacrack.py D:\\
+        python teslacrack.py --progress D:\\
 
    - In some cases you may start receiving error-messages, saying
      ``"Unknown key in file: some/file"``.

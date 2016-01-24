@@ -17,13 +17,14 @@
 #    --overwrite    # Re-decrypt and overwirte existing decrypted-files.
 #    --progress     # Before start encrypting, pre-scan all dirs, to provide progress-indicator.
 #    -v             # Verbosely log(DEBUG) all files decrypted
-#    -n             # Dry-run: do not decrypt or delete but report logs and stats.
+#    -n             # Dry-run: do not decrypt/delete, just report actions performed (logs and stats).
 
 ## EXAMPLES:
 #
-#    python teslacrack -v                          ## Decrypts current-folder, logging verbosely.
-#    python teslacrack .  bar\cob.xlsx             ## Decrypts current-folder & file
-#    python teslacrack C:\\ --delete-old           ## WILL DELETE ALL `.vvv` files on disk!!!
+#    python teslacrack -v                      ## Decrypts current-folder, logging verbosely.
+#    python teslacrack .  bar\cob.xlsx         ## Decrypts current-folder & file
+#    python teslacrack --delete-old C:\\       ## WILL DELETE ALL `.vvv` files on disk!!!
+#    python teslacrack --progress -n -v  C:\\  ## Just to check what actions will perform.
 #
 # Enjoy! ;)
 
@@ -162,7 +163,7 @@ def is_progess_time():
 
 def upath(f):
     if platform.system() == 'Windows':
-        f = r'\\?\%s' % f # Handle unicode-long files.
+        f = r'\\?\%s' % os.path.abspath(f) # Handle long unicode files.
     return f
 
 def traverse_fpaths(fpaths):
