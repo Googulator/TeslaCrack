@@ -8,11 +8,6 @@ file names of the ransom notes being "Howto_RESTORE_FILES.txt".
 The tool should also work against other recent versions of TeslaCrypt - for ancient versions,
 use tesladecrypt or TeslaDecoder together with the Bitcoin-based key reconstructor instead.
 
-DISCLAIMER: I'm not affiliated in any way with the Indian antivirus company QuickHeal.
-They merely linked to this tool, and Myce.com then erroneously reported QuickHeal's authorship.
-(In all fairness, QuickHeal didn't claim authorship, only Myce.com did. Nevertheless,
-I'm still posting this here, as other websites are now mirroring Myce.com's claims.)
-
 TeslaCrack implements an integer factorization attack against TeslaCrypt's encryption
 scheme. The actual factorization is not implemented within TeslaCrack, instead,
 it will provide the numbers to be factored, which you will need to input into an existing
