@@ -54,6 +54,10 @@ known_keys = {
 
 tesla_extensions = ['.vvv', '.ccc']  # Add more known extensions.
 
+## If i18n-filenames are destroyed, experiment with this.
+#  e.g. 'UTF-8', 'iso-8859-9', 'CP437', 'CP1252'
+filenames_encoding = sys.getfilesystemencoding()
+
 known_file_magics = [b'\xde\xad\xbe\xef\x04', b'\x00\x00\x00\x00\x04']
 
 ## CMD-OPTIONS
@@ -77,6 +81,8 @@ deleted_nfiles = skip_nfiles = unknown_nfiles = failed_nfiles = 0
 PROGRESS_INTERVAL_SEC = 7 # Log stats every that many files processed.
 last_progress_time = time.time()
 
+
+_PY2 = sys.version_info[0] == 2
 
 
 def fix_key(key):
@@ -166,16 +172,17 @@ def is_progess_time():
         last_progress_time = time.time()
         return True
 
-def upath(f):
-    if platform.system() == 'Windows':
-        f = r'\\?\%s' % os.path.abspath(f) # Handle long unicode files.
-    return f
 
 def traverse_fpaths(fpaths):
+    """Scan disk and decrypt tesla-files.
+    
+    :param: list fpaths:
+            Start points to scan.
+            Must be unicode, and on *Windows* '\\?\' prefixed.
+    """
     global visited_ndirs
 
     for fpath in fpaths:
-        fpath = upath(fpath)
         if os.path.isfile(fpath):
             decrypt_file(fpath)
         else:
@@ -233,8 +240,21 @@ def log_stats(fpath=''):
         unknown_nfiles, failed_nfiles)
 
 
+
+def _path_to_ulong(path):
+    """Support Long Unicode paths and handle `C: --> C:\<current-dir>` on *Windows*."""
+    if _PY2:
+        path = unicode(path, filenames_encoding)  # @UndefinedVariable
+    if os.name == 'nt' or sys.platform == 'cygwin': ## But cygwin is missing cryptodome lib.
+        if path.endswith(':'):
+            path += '\\'
+        path = r'\\?\%s' % os.path.abspath(path)
+    return path
+
+
 def main(args):
     global verbose, delete, delete_old, overwrite, ndirs, dry_run
+
     progress = False
     fpaths = []
 
@@ -259,8 +279,11 @@ def main(args):
     frmt = "%(asctime)-15s:%(levelname)3.3s: %(message)s"
     logging.basicConfig(level=log_level, format=frmt)
 
-    if not fpaths:
+    if fpaths:
+        fpaths = [_path_to_ulong(f) for f in fpaths]
+    else:
         fpaths.append('.')
+
 
     if progress:
         ndirs = count_subdirs(fpaths)

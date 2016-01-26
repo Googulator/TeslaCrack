@@ -71,12 +71,15 @@ In *Windows*, the following 2 alternatives have been tested:
   choose explicitly the 64-bit version.
   Check also the option for adding Python into your ``PATH``.
 
-- The portable `WinPython 3.4 "slim" <http://sourceforge.net/projects/winpython/files/WinPython_3.4/3.4.3.7/>`_
-  distribution.  By default it does not modify your ``PATH`` so you
+- The portable `WinPython <https://winpython.github.io>`_ distributions.
+  It has been tested both with: `WinPython-3.4 "slim"
+  <http://sourceforge.net/projects/winpython/files/WinPython_3.4/3.4.3.7/>`_
+  and `WinPython-2.7 <http://sourceforge.net/projects/winpython/files/WinPython_2.7/2.7.10.3/>`_.
+  Notice that by default they do not modify your ``PATH`` so you
   **must run all commands from the included command-propmpt executable**.
-  And although  it **does not require admin-rights to install**,
-  you may eventually need admin-rights if the files to decrypt originate
-  from a different user.
+  And although  they **do not require admin-rights to install**,
+  you may eventually **need admin-rights** when running `teslacrypt.py`,
+  if the files to decrypt originate from a different user.
 
 Install TeslaCrypt
 ------------------
