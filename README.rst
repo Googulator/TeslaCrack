@@ -38,7 +38,7 @@ that is relevant for this cracking tool:
   your files (i.e. reboot).
 
 *TeslaCrack* implements (primarily) an integer factorization attack against
-the symmetric AES-key.
+the asymmetric scheme (breaking the encrypted-AES-key).
 The actual factorization is not implemented within *TeslaCrack*, instead,
 it extracts the numbers to be factored, which you will need to feed them into existing
 factoring tool, such as `YAFU or msieve <https://www.google.com/search?q=msieve+factorization>`_.

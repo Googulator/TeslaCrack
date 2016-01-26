@@ -40,6 +40,7 @@ from __future__ import unicode_literals
 import argparse
 import logging
 import os
+import shutil
 import struct
 import sys
 import time
@@ -84,15 +85,29 @@ def fix_key(key):
     return key
 
 
-def needs_decryption(fname, exp_size, overwrite):
+def _decide_ext(ext):
+    """Strange logic here, see :func:`_argparse_ext_type()`."""
+    if not ext or isinstance(ext, bool):
+        ext = None
+    return ext
+
+
+def needs_decryption(fname, exp_size, fix, overwrite):
+    """Returns (file_exist?  should_decrypt?  what_backup_ext?)."""
     fexists = os.path.isfile(fname)
-    if fexists and not overwrite:
+    if overwrite:
+        should_decrypt = overwrite
+    elif fexists:
         disk_size = os.stat(fname).st_size
         if disk_size != exp_size:
-            overwrite = True
-            log.warn("Corrupted file(disk_size(%i) != %i) will be overwritten: %s",
+            log.warn("Bad(?) decrypted-file had unexpected size(disk_size(%i) != %i): %s",
                     disk_size, exp_size, fname)
-    return fexists, overwrite
+            should_decrypt = fix
+        else:
+            should_decrypt = False
+    else:
+        should_decrypt = True
+    return fexists, should_decrypt, _decide_ext(should_decrypt)
 
 
 def decrypt_file(opts, stats, fpath):
@@ -125,11 +140,16 @@ def decrypt_file(opts, stats, fpath):
 
             size = struct.unpack('<I', header[0x19a:0x19e])[0]
             orig_fname = os.path.splitext(fpath)[0]
-            decrypt_exists, my_overwrite = needs_decryption(orig_fname, size, opts.overwrite)
-            if my_overwrite or not decrypt_exists:
+            decrypt_exists, should_decrypt, backup_ext = needs_decryption(
+                    orig_fname, size, opts.fix, opts.overwrite)
+            if should_decrypt:
+                if decrypt_exists and backup_ext:
+                    log.debug("Backing-up: %s --> %s", orig_fname, backup_ext)
+                    backup_fname = orig_fname + backup_ext
+                    opts.dry_run or shutil.move(orig_fname, backup_fname)
                 log.debug("Decrypting%s%s: %s",
-                        '(dry-run)' if opts.dry_run else '',
-                        '(overwrite)' if decrypt_exists else '', fpath)
+                        '(overwrite)' if decrypt_exists else '',
+                        '(dry-run)' if opts.dry_run else '', fpath)
                 decryptor = AES.new(
                         fix_key(known_keys[aes_encrypted_key]),
                         AES.MODE_CBC, header[0x18a:0x19a])
@@ -149,8 +169,7 @@ def decrypt_file(opts, stats, fpath):
         if do_unlink:
             log.debug("Deleting%s: %s",
                     '(dry-run)' if opts.dry_run else '', fpath)
-            if not opts.dry_run:
-                os.unlink(fpath)
+            opts.dry_run or os.unlink(fpath)
             stats.deleted_nfiles += 1
     except Exception as e:
         stats.failed_nfiles += 1
@@ -243,10 +262,14 @@ def _path_to_ulong(path):
     return path
 
 
-def _ap_file_ext(arg):
-    if not arg.startswith('.'):
-        raise argparse.ArgumentTypeError('%r does not start with a dot(`.`)!')
-    return arg
+def _argparse_ext_type(ext):
+    ext = ext.strip()
+    if ext == '': # User wanted option enabled, but without .ext.
+        ext = True
+    elif not ext.startswith('.'):
+        raise argparse.ArgumentTypeError(
+                "Extension %r must start with a dot(`.`) or '' for None!" % ext)
+    return ext
 
 
 def _parse_args(args):
@@ -256,23 +279,34 @@ def _parse_args(args):
     ap.add_argument('-v', '--verbose', action='store_true',
             help="Verbosely log(DEBUG) all files decrypted.")
     ap.add_argument('-n', '--dry-run', action='store_true',
-            help="Decrypt but don't Write/Delete files, just report actions performed"
+            help="Decrypt but don't Write/Delete files, just report actions performed "
             "[default: %(default)r].")
     ap.add_argument('--delete', action='store_true',
             help="Delete encrypted-files after decrypting them.")
     ap.add_argument('--delete-old', action='store_true',
-            help="Delete encrypted even if decrypted-file created during a previous run"
-            "[default: %(default)r].")
-    ap.add_argument('--overwrite', action='store_true',
-            help="Re-decrypt and overwirte existing decrypted-files"
+            help="Delete encrypted even if decrypted-file created during a previous run "
             "[default: %(default)r].")
     ap.add_argument('--progress', action='store_true',
-            help="Before start encrypting, pre-scan all dirs, to provide progress-indicator"
+            help="Before start encrypting, pre-scan all dirs, to provide progress-indicator "
             "[default: %(default)r].")
     ap.add_argument('fpaths', nargs='*', default=['.'],
-            help="Decrypt but don't Write/Delete files, just report actions performed"
+            help="Decrypt but don't Write/Delete files, just report actions performed "
             "[default: %(default)r].")
     ap.add_argument('--version', action='version', version='%(prog)s 2.0')
+    xgroup = ap.add_mutually_exclusive_group()
+    xgroup.add_argument('--fix', nargs='?', type=_argparse_ext_type, metavar='<.ext>', default=False, const='.BAK',
+            help="Re-decrypt tesla-files and overwrite decrypted-counterparts if they have unexpected size. "
+            "By default, backs-up existing files with '%(const)s' extension. "
+            "Specify empty('') extension for no backup (eg. `--fix=`) "
+            "WARNING: You may LOOSE FILES that have changed due to regular use, "
+            "such as, configuration-files and mailboxes! "
+            "[default: %(default)s]. ")
+    xgroup.add_argument('--overwrite', nargs='?', type=_argparse_ext_type, metavar='<.ext>', default=False, const=True,
+            help="Re-decrypt ALL tesla-files, overwritting all decrypted-counterparts. "
+            "Optionally creates backups with the given extension. "
+            "WARNING: You may LOOSE FILES that have changed due to regular use, "
+            "such as, configuration-files and mailboxes! "
+            "[default: %(default)s]. ")
     return ap.parse_args(args)
 
 
