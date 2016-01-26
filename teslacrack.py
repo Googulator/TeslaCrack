@@ -3,23 +3,44 @@ TeslaCrack - decryptor for the TeslaCrypt ransomware
 
 by Googulator
 
-   python teslacrypt.py [options] [file-path-1]...
+USAGE: teslacrack.py [-h] [-v] [-n] [--delete] [--delete-old] [--progress]
+                     [--version] [--fix [<.ext>] | --overwrite [<.ext>]]
+                     [fpaths [fpaths ...]]
 
-When invoked without any folder specified, working-dir('.') assumed.
+TeslaCrack - decryptor for the TeslaCrypt ransomware by Googulator
 
- OPTIONS
+positional arguments:
+  fpaths                Unlock but don't Write/Delete files, just report
+                        actions performed [default: ['.']].
 
-   --delete       # Delete encrypted-files after decrypting them.
-   --delete-old   # Delete encrypted even if decrypted-file created during a previous run.
-   --overwrite    # Re-decrypt and overwirte existing decrypted-files.
-   --progress     # Before start encrypting, pre-scan all dirs, to provide progress-indicator.
-   -v, --verbose  # Log(DEBUG) all files as they are being decrypted.
-   -n, --dry-run  # Decrypt but don't Write/Delete files, just report actions performed.
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Verbosely log(DEBUG) all actions on files unlocked.
+  -n, --dry-run         Unlock but don't Write/Delete files, just report
+                        actions performed [default: False].
+  --delete              Delete locked-files after unlocking them.
+  --delete-old          Delete locked even if unlocked-file created during a
+                        previous run [default: False].
+  --progress            Before start unlocking files, pre-scan all dirs, to
+                        provide progress-indicator [default: False].
+  --version             show program's version number and exit
+  --fix [<.ext>]        Re-unlock tesla-files and overwrite locked-
+                        counterparts if they have unexpected size. By default,
+                        backs-up existing files with '.BAK' extension. Specify
+                        empty('') extension for no backup (eg. `--fix=`)
+                        WARNING: You may LOOSE FILES that have changed due to
+                        regular use, such as, configuration-files and
+                        mailboxes! [default: False].
+  --overwrite [<.ext>]  Re-unlock ALL tesla-files, overwritting all locked-
+                        counterparts. Optionally creates backups with the
+                        given extension. WARNING: You may LOOSE FILES that
+                        have changed due to regular use, such as,
+                        configuration-files and mailboxes! [default: False].
 
 EXAMPLES:
 
-   python teslacrack -v                      ## Decrypts current-folder, logging verbosely.
-   python teslacrack .  bar\cob.xlsx         ## Decrypts current-folder & file
+   python teslacrack -v                      ## Unlock current-folder, logging verbosely.
+   python teslacrack .  bar\cob.xlsx         ## Unlock current-folder & file
    python teslacrack --delete-old C:\\       ## WILL DELETE ALL `.vvv` files on disk!!!
    python teslacrack --progress -n -v  C:\\  ## Just to check what actions will perform.
 
@@ -59,7 +80,7 @@ known_keys = {
 }
 
 ## Add more known extensions, e.g. '.xyz'.
-#  Note that '.xxx', '.micro' and '.ttt' are encrypted by a new variant
+#  Note that '.xxx', '.micro' and '.ttt' are locked by a new variant
 #  of teslacrypt (3.0).
 tesla_extensions = ['.vvv', '.ccc',  '.zzz', '.aaa', '.abc']
 
@@ -92,31 +113,31 @@ def _decide_ext(ext):
     return ext
 
 
-def needs_decryption(fname, exp_size, fix, overwrite):
-    """Returns (file_exist?  should_decrypt?  what_backup_ext?)."""
+def needs_unlock(fname, exp_size, fix, overwrite):
+    """Returns (file_exist?  should_unlock?  what_backup_ext?)."""
     fexists = os.path.isfile(fname)
     if overwrite:
-        should_decrypt = overwrite
+        should_unlock = overwrite
     elif fexists:
         disk_size = os.stat(fname).st_size
         if disk_size != exp_size:
-            log.warn("Bad(?) decrypted-file had unexpected size(disk_size(%i) != %i): %s",
+            log.warn("Bad(?) locked-file had unexpected size(disk_size(%i) != %i): %s",
                     disk_size, exp_size, fname)
-            should_decrypt = fix
+            should_unlock = fix
         else:
-            should_decrypt = False
+            should_unlock = False
     else:
-        should_decrypt = True
-    return fexists, should_decrypt, _decide_ext(should_decrypt)
+        should_unlock = True
+    return fexists, should_unlock, _decide_ext(should_unlock)
 
 
-def decrypt_file(opts, stats, fpath):
+def unlock_file(opts, stats, fpath):
     try:
         stats.visited_nfiles += 1
         if not os.path.splitext(fpath)[1] in tesla_extensions:
             return
 
-        stats.encrypt_nfiles += 1
+        stats.locked_nfiles += 1
         do_unlink = False
         with open(fpath, "rb") as fin:
             header = fin.read(414)
@@ -140,15 +161,15 @@ def decrypt_file(opts, stats, fpath):
 
             size = struct.unpack('<I', header[0x19a:0x19e])[0]
             orig_fname = os.path.splitext(fpath)[0]
-            decrypt_exists, should_decrypt, backup_ext = needs_decryption(
+            unlocked_exists, should_unlock, backup_ext = needs_unlock(
                     orig_fname, size, opts.fix, opts.overwrite)
-            if should_decrypt:
-                if decrypt_exists and backup_ext:
+            if should_unlock:
+                if unlocked_exists and backup_ext:
                     log.debug("Backing-up: %s --> %s", orig_fname, backup_ext)
                     backup_fname = orig_fname + backup_ext
                     opts.dry_run or shutil.move(orig_fname, backup_fname)
-                log.debug("Decrypting%s%s: %s",
-                        '(overwrite)' if decrypt_exists else '',
+                log.debug("Unlocking%s%s: %s",
+                        '(overwrite)' if unlocked_exists else '',
                         '(dry-run)' if opts.dry_run else '', fpath)
                 decryptor = AES.new(
                         fix_key(known_keys[aes_encrypted_key]),
@@ -157,12 +178,12 @@ def decrypt_file(opts, stats, fpath):
                 if not opts.dry_run:
                     with open(orig_fname, 'wb') as fout:
                         fout.write(data)
-                if opts.delete and not decrypt_exists or opts.delete_old:
+                if opts.delete and not unlocked_exists or opts.delete_old:
                     do_unlink = True
-                stats.decrypt_nfiles += 1
-                stats.overwrite_nfiles += decrypt_exists
+                stats.unlocked_nfiles += 1
+                stats.overwrite_nfiles += unlocked_exists
             else:
-                log.debug("Skip %r, already decrypted.", fpath)
+                log.debug("Skip %r, already unlocked.", fpath)
                 stats.skip_nfiles += 1
                 if opts.delete_old:
                     do_unlink = True
@@ -173,7 +194,7 @@ def decrypt_file(opts, stats, fpath):
             stats.deleted_nfiles += 1
     except Exception as e:
         stats.failed_nfiles += 1
-        log.error("Error decrypting %r due to %r!  Please try again.",
+        log.error("Error unlocking %r due to %r!  Please try again.",
                 fpath, e, exc_info=opts.verbose)
 
 
@@ -185,7 +206,7 @@ def is_progess_time():
 
 
 def traverse_fpaths(opts, stats):
-    """Scan disk and decrypt tesla-files.
+    """Scan disk and unlock tesla-files.
 
     :param: list fpaths:
             Start points to scan.
@@ -193,7 +214,7 @@ def traverse_fpaths(opts, stats):
     """
     for fpath in opts.fpaths:
         if os.path.isfile(fpath):
-            decrypt_file(opts, stats, fpath)
+            unlock_file(opts, stats, fpath)
         else:
             for dirpath, _, files in os.walk(fpath):
                 stats.visited_ndirs += 1
@@ -201,7 +222,7 @@ def traverse_fpaths(opts, stats):
                     log_stats(stats, dirpath)
                     log_unknown_keys()
                 for f in files:
-                    decrypt_file(opts, stats, os.path.join(dirpath, f))
+                    unlock_file(opts, stats, os.path.join(dirpath, f))
 
 
 def count_subdirs(opts, stats):
@@ -238,15 +259,15 @@ def log_stats(stats, fpath=''):
         dir_progress = ' of %i(%0.2f%%)' % (stats.ndirs, prcnt)
     log.info("+++Dir %5i%s%s"
             "\n    visited: %7i"
-            "\n  encrypted:%7i"
-            "\n    decrypted:%7i"
+            "\n     locked:%7i"
+            "\n     unlocked:%7i"
             "\n    overwritten:%7i"
             "\n      deleted:%7i"
             "\n      skipped:%7i"
             "\n      unknown:%7i"
             "\n       failed:%7i",
-        stats.visited_ndirs, dir_progress, fpath, stats.visited_nfiles, stats.encrypt_nfiles,
-        stats.decrypt_nfiles, stats.overwrite_nfiles, stats.deleted_nfiles,
+        stats.visited_ndirs, dir_progress, fpath, stats.visited_nfiles, stats.locked_nfiles,
+        stats.unlocked_nfiles, stats.overwrite_nfiles, stats.deleted_nfiles,
         stats.skip_nfiles, stats.unknown_nfiles, stats.failed_nfiles)
 
 
@@ -277,32 +298,32 @@ def _parse_args(args):
     ap = argparse.ArgumentParser(description='\n'.join(doclines[:4]),
             epilog='\n'.join(doclines[-12:]))
     ap.add_argument('-v', '--verbose', action='store_true',
-            help="Verbosely log(DEBUG) all files decrypted.")
+            help="Verbosely log(DEBUG) all actions on files unlocked.")
     ap.add_argument('-n', '--dry-run', action='store_true',
-            help="Decrypt but don't Write/Delete files, just report actions performed "
+            help="Unlock but don't Write/Delete files, just report actions performed "
             "[default: %(default)r].")
     ap.add_argument('--delete', action='store_true',
-            help="Delete encrypted-files after decrypting them.")
+            help="Delete locked-files after unlocking them.")
     ap.add_argument('--delete-old', action='store_true',
-            help="Delete encrypted even if decrypted-file created during a previous run "
+            help="Delete locked even if unlocked-file created during a previous run "
             "[default: %(default)r].")
     ap.add_argument('--progress', action='store_true',
-            help="Before start encrypting, pre-scan all dirs, to provide progress-indicator "
+            help="Before start unlocking files, pre-scan all dirs, to provide progress-indicator "
             "[default: %(default)r].")
     ap.add_argument('fpaths', nargs='*', default=['.'],
-            help="Decrypt but don't Write/Delete files, just report actions performed "
+            help="Unlock but don't Write/Delete files, just report actions performed "
             "[default: %(default)r].")
     ap.add_argument('--version', action='version', version='%(prog)s 2.0')
     xgroup = ap.add_mutually_exclusive_group()
     xgroup.add_argument('--fix', nargs='?', type=_argparse_ext_type, metavar='<.ext>', default=False, const='.BAK',
-            help="Re-decrypt tesla-files and overwrite decrypted-counterparts if they have unexpected size. "
+            help="Re-unlock tesla-files and overwrite locked-counterparts if they have unexpected size. "
             "By default, backs-up existing files with '%(const)s' extension. "
             "Specify empty('') extension for no backup (eg. `--fix=`) "
             "WARNING: You may LOOSE FILES that have changed due to regular use, "
             "such as, configuration-files and mailboxes! "
             "[default: %(default)s]. ")
     xgroup.add_argument('--overwrite', nargs='?', type=_argparse_ext_type, metavar='<.ext>', default=False, const=True,
-            help="Re-decrypt ALL tesla-files, overwritting all decrypted-counterparts. "
+            help="Re-unlock ALL tesla-files, overwritting all locked-counterparts. "
             "Optionally creates backups with the given extension. "
             "WARNING: You may LOOSE FILES that have changed due to regular use, "
             "such as, configuration-files and mailboxes! "
@@ -321,7 +342,7 @@ def main(args):
     opts.fpaths = [_path_to_ulong(f) for f in opts.fpaths]
 
     stats = argparse.Namespace(ndirs = -1,
-            visited_ndirs=0, visited_nfiles=0, encrypt_nfiles=0, decrypt_nfiles=0,
+            visited_ndirs=0, visited_nfiles=0, locked_nfiles=0, unlocked_nfiles=0,
             overwrite_nfiles=0, deleted_nfiles=0, skip_nfiles=0, unknown_nfiles=0,
             failed_nfiles=0, )
 

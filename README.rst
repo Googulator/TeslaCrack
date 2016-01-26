@@ -1,6 +1,6 @@
-#####################################################
-TeslaCrack - decryptor for the TeslaCrypt ransomware
-#####################################################
+##########################################################
+TeslaCrack - decrypt files locked by TeslaCrypt ransomware
+##########################################################
 |pypi-ver| |flattr-donate| |btc-donate|
 
 :Date:        2016-01-22
@@ -8,16 +8,15 @@ TeslaCrack - decryptor for the TeslaCrypt ransomware
 :Author:      Googulator
 
 
-
-This is a tool for decrypting files that were encrypted with the latest version
+This is a tool for unlocking files that were locked with the latest version
 (variously known as "v8" or "v2.2.0") of the **TeslaCrypt ransomware**.
-This new version can be recognized from the extension ``.vvv`` or ``.ccc`` added
-to the names of encrypted files, and/or the filenames of the ransom notes being
-``Howto_RESTORE_FILES.txt``.
+This new version can be recognized from the extensions ``.vvv, .ccc,  .zzz, .aaa, .abc``
+added to the names of you original files, and/or the filenames of the ransom notes
+being ``Howto_RESTORE_FILES.txt``.
 
-The tool should also work against other recent versions of TeslaCrypt - for ancient versions,
-use *tesladecrypt* or *TeslaDecoder* together with the Bitcoin-based key
-reconstructor instead (``unfactor_bitcoin.py``).
+The tool should also work against other recent versions of TeslaCrypt -
+for ancient versions, use *tesladecrypt* or *TeslaDecoder* together with
+the Bitcoin-based key reconstructor instead (``unfactor_bitcoin.py``).
 
 .. contents:: Table of Contents
   :backlinks: top
@@ -28,13 +27,14 @@ We recapitulate `how TeslaCrypt ransomware works and explain the weakness
 <http://www.bleepingcomputer.com/news/security/teslacrypt-decrypted-flaw-in-teslacrypt-allows-victims-to-recover-their-files/>`_
 that is relevant for this cracking tool:
 
-1. *TeslaCrypt* creates a symmetrical AES-session-key that will be used to encrypt your files,
+1. *TeslaCrypt* creates a symmetrical AES-session-key that will be used to
+   encrypt ("lock") your files,
 2. it then asymmetrically ECDH-encrypts that AES-key and transmits the private-ECDH-key
    to the operators of the ransomware (but that is irrelevant here), and finally
-3. it starts encrypting your files one-by-one, attaching the encrypted-AES-key
+3. it starts locking your files one-by-one, attaching the encrypted-AES-key
    into their header.
 
-- Multiple AES-keys are generated if you interrupt the ransomware while it encrypts
+- Multiple AES-keys are generated if you interrupt the ransomware while it locks
   your files (i.e. reboot).
 
 *TeslaCrack* implements (primarily) an integer factorization attack against
@@ -45,12 +45,12 @@ factoring tool, such as `YAFU or msieve <https://www.google.com/search?q=msieve+
 
 The files performing most of the job are these two:
 
-- ``teslacrack.py``: parses the headers from ``.vvv`` (or ``.ccc``) files,
-  extracts their encrypted-AES-keys, and if their corresponding session-key
+- ``teslacrack.py``: parses the headers from the tesla-files,
+  extracts their encrypted-AES-keys, and if their corresponding decrypted-key
   has already been reconstructed earlier (by following the steps described below),
-  it decrypts those files.
-- ``unfactor.py``: reconstructs the session-key from the factorized(externally)
-  encrypted-AES-keys.
+  and unlocks files.
+- ``unfactor.py``: reconstructs an AES-key from a factorized(externally)
+  encrypted-AES-key.
 
 
 Installation
@@ -76,10 +76,10 @@ In *Windows*, the following 2 alternatives have been tested:
   <http://sourceforge.net/projects/winpython/files/WinPython_3.4/3.4.3.7/>`_
   and `WinPython-2.7 <http://sourceforge.net/projects/winpython/files/WinPython_2.7/2.7.10.3/>`_.
   Notice that by default they do not modify your ``PATH`` so you
-  **must run all commands from the included command-propmpt executable**.
+  **must run all commands from the included command-prompt executable**.
   And although  they **do not require admin-rights to install**,
-  you may eventually **need admin-rights** when running `teslacrypt.py`,
-  if the files to decrypt originate from a different user.
+  you most probably **need admin-rights** when running `teslacrack.py`,
+  if the files to unlock originate from a different user.
 
 Install TeslaCrypt
 ------------------
@@ -106,35 +106,34 @@ Install TeslaCrypt
    in a few hours, with some unlucky keys possibly taking up to a week.
 
 
-How to decrypt your files
+How to unlock your files
 =========================
 
-1. Collect an encrypted file from the attacked machine in your *working folder*.
+1. Collect a "locked" file from the attacked machine in your *working folder*.
    Choose a file with a known initial magic number - ``unfactor.py`` is pre-configured
    for working with PDF files; change the magic number in ``unfactor.py`` from '%PDF'
    to the correct value if you did not selected a PDF:
 
-   - ``PK`` --> .zip;
-   - ``ODF`` --> .docx/OOXML files;
-   - ``\xff\xd8`` --> JPEGs;
-   - ``\xd0\xcf\x11\xe0`` --> MS Office .doc files
+        - PK                --> .zip, .ODF, OOXML (.docx/xlsx) files;
+        - \xff\xd8          --> JPEGs;
+        - \xd0\xcf\x11\xe0  --> MS Office .doc files
 
-   (in *python-3* bytes are given like that: ``b'\x3a'``).
+   (in *python-3* bytes are given like that: ``b'\xff\xd8'``).
 
    Note that commands below assume that your *working folder* is the one
    containing ``unfactor.py`` and ``teslacrack.py`` files.
 
-he 2. If the extension of your encrypted files is not one of
+2. If the extension of your locked files is not one of
    ``.vvv, .ccc,  .zzz, .aaa, .abc``, edit ``teslacrack.py`` to append it
    into ``tesla_extensions`` string-list.
 
    .. Note::
-        The extensions '.xxx', '.micro' and '.ttt' are encrypted by a new
+        The extensions '.xxx', '.micro' and '.ttt' have been reported for a new
         variant of TeslaCrypt (3.0).
 
 
-3. Enter this command in your working folder to process your encrypted file
-   (notice the ``.`` at the end,; you may use the name of your encrypted file instead)::
+3. Enter this command in your working folder to process your locked file
+   (notice the ``.`` at the end,; you may use the name of your locked file instead)::
 
        python -v teslacrack.py .
 
@@ -166,9 +165,9 @@ he 2. If the extension of your encrypted files is not one of
      run slow), use ``factmsieve.py`` (downloaded optionally above), which is
      more complicated, but also faster, multithreaded, and doesn't tend to crash.
 
-6. To reconstruct the AES-key that has encrypted your files, run::
+6. To reconstruct the AES-key that has locked your files, run::
 
-       python unfactor.py  <encrypted file>  <primes from previous step, separated by spaces>
+       python unfactor.py  <lockeded file>  <primes from previous step, separated by spaces>
 
    It will reconstruct and print any decrypted AES-keys candidates (usually just one).
 
@@ -201,43 +200,52 @@ he 2. If the extension of your encrypted files is not one of
 
       <encrypted-AES-key>: <1st decrypted-AES-key candidate>,
 
-8. Repeat step 3. A decrypted file should now appear next to the encrypted
-   ``.vvv`` or ``.ccc`` file; verify that it has been decrypted correctly.
+8. Repeat step 3. An unlocked file should now appear next to the locked one
+   (``.vvv``, ``.ccc``, etc) - verify that the contents of the unlocked-file
+   do make sense.
 
    - If not, redo step 7, replacing every time a new candidate decrypted AES-key
      in the pair.
 
-9. To decrypt all of your files run from an administrator command prompt::
+9. To unlock all of your files run from an administrator command prompt::
 
         python teslacrack.py --progress D:\\
 
    - In some cases you may start receiving error-messages, saying
      ``"Unknown key in file: some/file"``.
-     This means that some of your files have been encrypted with different
+     This means that some of your files have been locked with different
      AES-keys (i.e. the ransomware had been restarted due to a reboot).
      ``teslacrack.py`` will print at the end any new encrypted AES-key(s)
      encountered - repeat the procedure from step 4 for all newly discovered
      key(s) :-(
 
    - ``teslacrack.py`` accepts an optional ``--delete`` and ``--delete-old``
-     parameters, which will delete the encrypted copies of any file it
-     successfully decrypts (or already decrypted, the 2nd option).
-     Before using this option, make sure that your files are indeed decrypted
-     correctly!
+     parameters, which will delete the locked-files of any cleartext file it
+     successfully generates (or already has generated, for the 2nd option).
+     Before using this option, make sure that your files have been indeed
+     unlocked correctly!
 
    - By skipping this time the ``-v`` option (verbose logging) you avoid listing
      every file being visited - only failures and totals are reported.
 
-   - Use ``--overwrite`` if the previous decryptions had failed and want to
-     re-decrypt all files with new key(s).
+   - Use ``--overwrite`` or the more "selective" ``--fix`` option to
+     re-generate all cleartext files or just those that had previously failed to
+     unlock, respectively.  They both accept an optional *file-extension*
+     to construct the backup filename.
+     Note that by default ``--overwrite`` does not make backups, while
+     ``-fix`` option, does.
 
-   - If you are going to decrypt 1000s of file (i.e ``D:\\``), it's worth
+   - If you are going to unlock 1000s of file (i.e ``D:\\``), it's worth
      using the ``--precount`` option; it will consume some initial time to
      pre-calculate directories to be visited, and then a progress-indicator
-     will be printed while decrypting.
+     will be printed while unlocking.
 
-   - Finally, you can "dry-run" all of the above (decrypting and deletion)
-     with ``-n`` option.
+   - Finally, You can "dry-run" all of the above (unlocking, deletion and backup)
+     with the ``-n`` option.
+
+   - Read decriptions for available options with::
+
+        python teslacrack.py --help
 
 
 And now, for some controversy...
