@@ -52,7 +52,10 @@ known_keys = {
     b'7097DDB2E5DD08950D18C263A41FF5700E7F2A01874B20F402680752268E43F4C5B7B26AF2642AE37BD64AB65B6426711A9DC44EA47FC220814E88009C90EA': b'\x01\x7b\x16\x47\xd4\x24\x2b\xc6\x7c\xe8\xa6\xaa\xec\x4d\x8b\x49\x3f\x35\x51\x9b\xd8\x27\x75\x62\x3d\x86\x18\x21\x67\x14\x8d\xd9',
 }
 
-tesla_extensions = ['.vvv', '.ccc']  # Add more known extensions.
+## Add more known extensions, e.g. '.xyz'.
+#  Note that '.xxx', '.micro' and '.ttt' are encrypted by a new variant
+#  of teslacrypt (3.0).
+tesla_extensions = ['.vvv', '.ccc',  '.zzz', '.aaa', '.abc']
 
 ## If i18n-filenames are destroyed, experiment with this.
 #  e.g. 'UTF-8', 'iso-8859-9', 'CP437', 'CP1252'
@@ -175,7 +178,7 @@ def is_progess_time():
 
 def traverse_fpaths(fpaths):
     """Scan disk and decrypt tesla-files.
-    
+
     :param: list fpaths:
             Start points to scan.
             Must be unicode, and on *Windows* '\\?\' prefixed.

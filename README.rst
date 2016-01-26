@@ -106,8 +106,8 @@ Install TeslaCrypt
    in a few hours, with some unlucky keys possibly taking up to a week.
 
 
-How to decrypt your ``.vvv`` or ``.ccc`` files
-==============================================
+How to decrypt your files
+=========================
 
 1. Collect an encrypted file from the attacked machine in your *working folder*.
    Choose a file with a known initial magic number - ``unfactor.py`` is pre-configured
@@ -124,8 +124,14 @@ How to decrypt your ``.vvv`` or ``.ccc`` files
    Note that commands below assume that your *working folder* is the one
    containing ``unfactor.py`` and ``teslacrack.py`` files.
 
-2. If the extension of your encrypted files is not ``.vvv`` or ``.ccc``,
-   edit ``teslacrack.py`` to append it into ``tesla_extensions`` string-list.
+he 2. If the extension of your encrypted files is not one of
+   ``.vvv, .ccc,  .zzz, .aaa, .abc``, edit ``teslacrack.py`` to append it
+   into ``tesla_extensions`` string-list.
+
+   .. Note::
+        The extensions '.xxx', '.micro' and '.ttt' are encrypted by a new
+        variant of TeslaCrypt (3.0).
+
 
 3. Enter this command in your working folder to process your encrypted file
    (notice the ``.`` at the end,; you may use the name of your encrypted file instead)::
