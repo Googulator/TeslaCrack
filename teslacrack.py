@@ -71,15 +71,8 @@ known_file_magics = [b'\xde\xad\xbe\xef\x04', b'\x00\x00\x00\x00\x04']
 unknown_keys = {}
 unknown_btkeys = {}
 
-## STATS
-#
-ndirs = -1
-visited_ndirs = 0
-visited_nfiles = encrypt_nfiles = decrypt_nfiles = overwrite_nfiles = 0
-deleted_nfiles = skip_nfiles = unknown_nfiles = failed_nfiles = 0
-
 PROGRESS_INTERVAL_SEC = 7 # Log stats every that many files processed.
-last_progress_time = time.time()
+_last_progress_time = time.time()
 
 
 _PY2 = sys.version_info[0] == 2
@@ -101,23 +94,21 @@ def needs_decryption(fname, exp_size, overwrite):
                     disk_size, exp_size, fname)
     return fexists, overwrite
 
-def decrypt_file(opts, fpath):
-    global visited_nfiles, encrypt_nfiles, decrypt_nfiles, skip_nfiles
-    global deleted_nfiles, failed_nfiles, unknown_nfiles, overwrite_nfiles
 
+def decrypt_file(opts, stats, fpath):
     try:
-        visited_nfiles += 1
+        stats.visited_nfiles += 1
         if not os.path.splitext(fpath)[1] in tesla_extensions:
             return
 
-        encrypt_nfiles += 1
+        stats.encrypt_nfiles += 1
         do_unlink = False
         with open(fpath, "rb") as fin:
             header = fin.read(414)
 
             if header[:5] not in known_file_magics:
                 log.info("File %r doesn't appear to be TeslaCrypted.", fpath)
-                skip_nfiles += 1
+                stats.skip_nfiles += 1
                 return
 
             aes_encrypted_key = header[0x108:0x188].rstrip(b'\0')
@@ -128,7 +119,7 @@ def decrypt_file(opts, fpath):
                 if btc_key not in unknown_btkeys:
                     unknown_btkeys[btc_key] = fpath
                 log.warn("Unknown key in file: %s", fpath)
-                unknown_nfiles += 1
+                stats.unknown_nfiles += 1
                 return
 
 
@@ -148,11 +139,11 @@ def decrypt_file(opts, fpath):
                         fout.write(data)
                 if opts.delete and not decrypt_exists or opts.delete_old:
                     do_unlink = True
-                decrypt_nfiles += 1
-                overwrite_nfiles += decrypt_exists
+                stats.decrypt_nfiles += 1
+                stats.overwrite_nfiles += decrypt_exists
             else:
                 log.debug("Skip %r, already decrypted.", fpath)
-                skip_nfiles += 1
+                stats.skip_nfiles += 1
                 if opts.delete_old:
                     do_unlink = True
         if do_unlink:
@@ -160,42 +151,41 @@ def decrypt_file(opts, fpath):
                     '(dry-run)' if opts.dry_run else '', fpath)
             if not opts.dry_run:
                 os.unlink(fpath)
-            deleted_nfiles += 1
+            stats.deleted_nfiles += 1
     except Exception as e:
-        failed_nfiles += 1
+        stats.failed_nfiles += 1
         log.error("Error decrypting %r due to %r!  Please try again.",
                 fpath, e, exc_info=opts.verbose)
 
+
 def is_progess_time():
-    global last_progress_time
-    if time.time() - last_progress_time > PROGRESS_INTERVAL_SEC:
-        last_progress_time = time.time()
+    global _last_progress_time
+    if time.time() - _last_progress_time > PROGRESS_INTERVAL_SEC:
+        _last_progress_time = time.time()
         return True
 
 
-def traverse_fpaths(opts):
+def traverse_fpaths(opts, stats):
     """Scan disk and decrypt tesla-files.
 
     :param: list fpaths:
             Start points to scan.
             Must be unicode, and on *Windows* '\\?\' prefixed.
     """
-    global visited_ndirs
-
     for fpath in opts.fpaths:
         if os.path.isfile(fpath):
-            decrypt_file(opts, fpath)
+            decrypt_file(opts, stats, fpath)
         else:
-            for dirpath, subdirs, files in os.walk(fpath):
-                visited_ndirs += 1
+            for dirpath, _, files in os.walk(fpath):
+                stats.visited_ndirs += 1
                 if is_progess_time():
-                    log_stats(dirpath)
+                    log_stats(stats, dirpath)
                     log_unknown_keys()
                 for f in files:
-                    decrypt_file(opts, os.path.join(dirpath, f))
+                    decrypt_file(opts, stats, os.path.join(dirpath, f))
 
 
-def count_subdirs(opts):
+def count_subdirs(opts, stats):
     n = 0
     log.info("+++Counting dirs...")
     for f in opts.fpaths:
@@ -205,6 +195,7 @@ def count_subdirs(opts):
                 log.info("+++Counting dirs: %i...", n)
             n += 1
     return n
+
 
 def log_unknown_keys():
     if unknown_keys:
@@ -219,13 +210,13 @@ def log_unknown_keys():
                 len(unknown_keys), '\n'.join(key_msgs))
 
 
-def log_stats(fpath=''):
+def log_stats(stats, fpath=''):
     if fpath:
         fpath = ': %r' % os.path.dirname(fpath)
     dir_progress = ''
-    if ndirs > 0:
-        prcnt = 100 * visited_ndirs / ndirs
-        dir_progress = ' of %i(%0.2f%%)' % (ndirs, prcnt)
+    if stats.ndirs > 0:
+        prcnt = 100 * stats.visited_ndirs / stats.ndirs
+        dir_progress = ' of %i(%0.2f%%)' % (stats.ndirs, prcnt)
     log.info("+++Dir %5i%s%s"
             "\n    visited: %7i"
             "\n  encrypted:%7i"
@@ -235,9 +226,9 @@ def log_stats(fpath=''):
             "\n      skipped:%7i"
             "\n      unknown:%7i"
             "\n       failed:%7i",
-        visited_ndirs, dir_progress, fpath, visited_nfiles, encrypt_nfiles,
-        decrypt_nfiles, overwrite_nfiles, deleted_nfiles, skip_nfiles,
-        unknown_nfiles, failed_nfiles)
+        stats.visited_ndirs, dir_progress, fpath, stats.visited_nfiles, stats.encrypt_nfiles,
+        stats.decrypt_nfiles, stats.overwrite_nfiles, stats.deleted_nfiles,
+        stats.skip_nfiles, stats.unknown_nfiles, stats.failed_nfiles)
 
 
 
@@ -250,6 +241,7 @@ def _path_to_ulong(path):
             path += '\\'
         path = r'\\?\%s' % os.path.abspath(path)
     return path
+
 
 def _ap_file_ext(arg):
     if not arg.startswith('.'):
@@ -285,8 +277,6 @@ def _parse_args(args):
 
 
 def main(args):
-    global ndirs
-
     opts = _parse_args(args)
 
     log_level = logging.DEBUG if opts.verbose else logging.INFO
@@ -296,13 +286,17 @@ def main(args):
 
     opts.fpaths = [_path_to_ulong(f) for f in opts.fpaths]
 
+    stats = argparse.Namespace(ndirs = -1,
+            visited_ndirs=0, visited_nfiles=0, encrypt_nfiles=0, decrypt_nfiles=0,
+            overwrite_nfiles=0, deleted_nfiles=0, skip_nfiles=0, unknown_nfiles=0,
+            failed_nfiles=0, )
 
     if opts.progress:
-        ndirs = count_subdirs(opts)
-    traverse_fpaths(opts)
+        stats.ndirs = count_subdirs(opts, stats)
+    traverse_fpaths(opts, stats)
 
     log_unknown_keys()
-    log_stats()
+    log_stats(stats)
 
 if __name__=='__main__':
     main(sys.argv[1:])
