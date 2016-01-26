@@ -1,5 +1,5 @@
 #####################################################
-TeslaCrack - decryptor for the TeslaCrypt ransomeware
+TeslaCrack - decryptor for the TeslaCrypt ransomware
 #####################################################
 |pypi-ver| |flattr-donate| |btc-donate|
 

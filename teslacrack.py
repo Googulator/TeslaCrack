@@ -1,40 +1,45 @@
-# TeslaCrypt cracker
-#
-# by Googulator
-#
-# To use, factor the 2nd hex string found in the headers of affected files using msieve.
-# The AES-256 key will be one of the factors, typically not a prime - experiment to see which one works.
-# Insert the hex string & AES key below, under known_keys, then run on affected directory.
-# If an unknown key is reported, crack that one using msieve, then add to known_keys and re-run.
-#
-# This script requires pycrypto to be installed.
-#
-#    python teslacrypt.py [options] [file-path-1]...
-#
-# When invoked without any folder specified, working-dir('.') assumed.
-#
-## OPTIONS
-#    --delete       # Delete encrypted-files after decrypting them.
-#    --delete-old   # Delete encrypted even if decrypted-file created during a previous run
-#    --overwrite    # Re-decrypt and overwirte existing decrypted-files.
-#    --progress     # Before start encrypting, pre-scan all dirs, to provide progress-indicator.
-#    -v             # Verbosely log(DEBUG) all files decrypted
-#    -n             # Dry-run: do not decrypt/delete, just report actions performed (logs and stats).
+"""
+TeslaCrack - decryptor for the TeslaCrypt ransomware
 
-## EXAMPLES:
-#
-#    python teslacrack -v                      ## Decrypts current-folder, logging verbosely.
-#    python teslacrack .  bar\cob.xlsx         ## Decrypts current-folder & file
-#    python teslacrack --delete-old C:\\       ## WILL DELETE ALL `.vvv` files on disk!!!
-#    python teslacrack --progress -n -v  C:\\  ## Just to check what actions will perform.
-#
-# Enjoy! ;)
+by Googulator
+
+   python teslacrypt.py [options] [file-path-1]...
+
+When invoked without any folder specified, working-dir('.') assumed.
+
+ OPTIONS
+
+   --delete       # Delete encrypted-files after decrypting them.
+   --delete-old   # Delete encrypted even if decrypted-file created during a previous run.
+   --overwrite    # Re-decrypt and overwirte existing decrypted-files.
+   --progress     # Before start encrypting, pre-scan all dirs, to provide progress-indicator.
+   -v, --verbose  # Log(DEBUG) all files as they are being decrypted.
+   -n, --dry-run  # Decrypt but don't Write/Delete files, just report actions performed.
+
+EXAMPLES:
+
+   python teslacrack -v                      ## Decrypts current-folder, logging verbosely.
+   python teslacrack .  bar\cob.xlsx         ## Decrypts current-folder & file
+   python teslacrack --delete-old C:\\       ## WILL DELETE ALL `.vvv` files on disk!!!
+   python teslacrack --progress -n -v  C:\\  ## Just to check what actions will perform.
+
+NOTES:
+
+This script requires pycrypto to be installed.
+
+To use, factor the 2nd hex string found in the headers of affected files using msieve.
+The AES-256 key will be one of the factors, typically not a prime - experiment to see which one works.
+Insert the hex string & AES key below, under known_keys, then run on affected directory.
+If an unknown key is reported, crack that one using msieve, then add to known_keys and re-run.
+
+Enjoy! ;)
+"""
 
 from __future__ import unicode_literals
+
+import argparse
 import logging
 import os
-from os.path import join as pjoin
-import platform
 import struct
 import sys
 import time
@@ -62,14 +67,6 @@ tesla_extensions = ['.vvv', '.ccc',  '.zzz', '.aaa', '.abc']
 filenames_encoding = sys.getfilesystemencoding()
 
 known_file_magics = [b'\xde\xad\xbe\xef\x04', b'\x00\x00\x00\x00\x04']
-
-## CMD-OPTIONS
-##
-delete = False      # --delete
-delete_old = False  # --delete-old
-overwrite = False   # --overwirte
-verbose = False     # -v
-dry_run = False     # -n
 
 unknown_keys = {}
 unknown_btkeys = {}
@@ -104,70 +101,70 @@ def needs_decryption(fname, exp_size, overwrite):
                     disk_size, exp_size, fname)
     return fexists, overwrite
 
-def decrypt_file(path):
+def decrypt_file(opts, fpath):
     global visited_nfiles, encrypt_nfiles, decrypt_nfiles, skip_nfiles
     global deleted_nfiles, failed_nfiles, unknown_nfiles, overwrite_nfiles
 
     try:
         visited_nfiles += 1
-        if not os.path.splitext(path)[1] in tesla_extensions:
+        if not os.path.splitext(fpath)[1] in tesla_extensions:
             return
 
         encrypt_nfiles += 1
         do_unlink = False
-        with open(path, "rb") as fin:
+        with open(fpath, "rb") as fin:
             header = fin.read(414)
 
             if header[:5] not in known_file_magics:
-                log.info("File %r doesn't appear to be TeslaCrypted.", path)
+                log.info("File %r doesn't appear to be TeslaCrypted.", fpath)
                 skip_nfiles += 1
                 return
 
             aes_encrypted_key = header[0x108:0x188].rstrip(b'\0')
             if aes_encrypted_key not in known_keys:
                 if aes_encrypted_key not in unknown_keys:
-                    unknown_keys[aes_encrypted_key] = path
+                    unknown_keys[aes_encrypted_key] = fpath
                 btc_key = header[0x45:0xc5].rstrip(b'\0')
                 if btc_key not in unknown_btkeys:
-                    unknown_btkeys[btc_key] = path
-                log.warn("Unknown key in file: %s", path)
+                    unknown_btkeys[btc_key] = fpath
+                log.warn("Unknown key in file: %s", fpath)
                 unknown_nfiles += 1
                 return
 
 
             size = struct.unpack('<I', header[0x19a:0x19e])[0]
-            orig_fname = os.path.splitext(path)[0]
-            decrypt_exists, my_overwrite = needs_decryption(orig_fname, size, overwrite)
+            orig_fname = os.path.splitext(fpath)[0]
+            decrypt_exists, my_overwrite = needs_decryption(orig_fname, size, opts.overwrite)
             if my_overwrite or not decrypt_exists:
                 log.debug("Decrypting%s%s: %s",
-                        '(overwrite)' if decrypt_exists else '',
-                        '(dry-run)' if dry_run else '', path)
+                        '(dry-run)' if opts.dry_run else '',
+                        '(overwrite)' if decrypt_exists else '', fpath)
                 decryptor = AES.new(
                         fix_key(known_keys[aes_encrypted_key]),
                         AES.MODE_CBC, header[0x18a:0x19a])
                 data = decryptor.decrypt(fin.read())[:size]
-                if not dry_run:
+                if not opts.dry_run:
                     with open(orig_fname, 'wb') as fout:
                         fout.write(data)
-                if delete and not decrypt_exists or delete_old:
+                if opts.delete and not decrypt_exists or opts.delete_old:
                     do_unlink = True
                 decrypt_nfiles += 1
                 overwrite_nfiles += decrypt_exists
             else:
-                log.debug("Skip %r, already decrypted.", path)
+                log.debug("Skip %r, already decrypted.", fpath)
                 skip_nfiles += 1
-                if delete_old:
+                if opts.delete_old:
                     do_unlink = True
         if do_unlink:
             log.debug("Deleting%s: %s",
-                    '(dry-run)' if dry_run else '', path)
-            if not dry_run:
-                os.unlink(path)
+                    '(dry-run)' if opts.dry_run else '', fpath)
+            if not opts.dry_run:
+                os.unlink(fpath)
             deleted_nfiles += 1
     except Exception as e:
         failed_nfiles += 1
         log.error("Error decrypting %r due to %r!  Please try again.",
-                path, e, exc_info=verbose)
+                fpath, e, exc_info=opts.verbose)
 
 def is_progess_time():
     global last_progress_time
@@ -176,7 +173,7 @@ def is_progess_time():
         return True
 
 
-def traverse_fpaths(fpaths):
+def traverse_fpaths(opts):
     """Scan disk and decrypt tesla-files.
 
     :param: list fpaths:
@@ -185,9 +182,9 @@ def traverse_fpaths(fpaths):
     """
     global visited_ndirs
 
-    for fpath in fpaths:
+    for fpath in opts.fpaths:
         if os.path.isfile(fpath):
-            decrypt_file(fpath)
+            decrypt_file(opts, fpath)
         else:
             for dirpath, subdirs, files in os.walk(fpath):
                 visited_ndirs += 1
@@ -195,13 +192,13 @@ def traverse_fpaths(fpaths):
                     log_stats(dirpath)
                     log_unknown_keys()
                 for f in files:
-                    decrypt_file(os.path.join(dirpath, f))
+                    decrypt_file(opts, os.path.join(dirpath, f))
 
 
-def count_subdirs(fpaths):
+def count_subdirs(opts):
     n = 0
     log.info("+++Counting dirs...")
-    for f in fpaths:
+    for f in opts.fpaths:
         #f = upath(f) # Don't bother...
         for _ in os.walk(f):
             if is_progess_time():
@@ -254,43 +251,55 @@ def _path_to_ulong(path):
         path = r'\\?\%s' % os.path.abspath(path)
     return path
 
+def _ap_file_ext(arg):
+    if not arg.startswith('.'):
+        raise argparse.ArgumentTypeError('%r does not start with a dot(`.`)!')
+    return arg
+
+
+def _parse_args(args):
+    doclines = __doc__.split('\n')
+    ap = argparse.ArgumentParser(description='\n'.join(doclines[:4]),
+            epilog='\n'.join(doclines[-12:]))
+    ap.add_argument('-v', '--verbose', action='store_true',
+            help="Verbosely log(DEBUG) all files decrypted.")
+    ap.add_argument('-n', '--dry-run', action='store_true',
+            help="Decrypt but don't Write/Delete files, just report actions performed"
+            "[default: %(default)r].")
+    ap.add_argument('--delete', action='store_true',
+            help="Delete encrypted-files after decrypting them.")
+    ap.add_argument('--delete-old', action='store_true',
+            help="Delete encrypted even if decrypted-file created during a previous run"
+            "[default: %(default)r].")
+    ap.add_argument('--overwrite', action='store_true',
+            help="Re-decrypt and overwirte existing decrypted-files"
+            "[default: %(default)r].")
+    ap.add_argument('--progress', action='store_true',
+            help="Before start encrypting, pre-scan all dirs, to provide progress-indicator"
+            "[default: %(default)r].")
+    ap.add_argument('fpaths', nargs='*', default=['.'],
+            help="Decrypt but don't Write/Delete files, just report actions performed"
+            "[default: %(default)r].")
+    ap.add_argument('--version', action='version', version='%(prog)s 2.0')
+    return ap.parse_args(args)
+
 
 def main(args):
-    global verbose, delete, delete_old, overwrite, ndirs, dry_run
+    global ndirs
 
-    progress = False
-    fpaths = []
+    opts = _parse_args(args)
 
-    log_level = logging.INFO
-    for arg in args:
-        if arg == "--delete":
-            delete = True
-        elif arg == "--delete-old":
-            delete = delete_old = True
-        elif arg == "--overwrite":
-            overwrite = True
-        elif arg == "--progress":
-            progress = True
-        elif arg == "-n":
-            dry_run = True
-        elif arg == "-v":
-            log_level = logging.DEBUG
-            verbose = True
-        else:
-            fpaths.append(arg)
-
+    log_level = logging.DEBUG if opts.verbose else logging.INFO
     frmt = "%(asctime)-15s:%(levelname)3.3s: %(message)s"
     logging.basicConfig(level=log_level, format=frmt)
+    log.debug('Options: %s', opts)
 
-    if fpaths:
-        fpaths = [_path_to_ulong(f) for f in fpaths]
-    else:
-        fpaths.append('.')
+    opts.fpaths = [_path_to_ulong(f) for f in opts.fpaths]
 
 
-    if progress:
-        ndirs = count_subdirs(fpaths)
-    traverse_fpaths(fpaths)
+    if opts.progress:
+        ndirs = count_subdirs(opts)
+    traverse_fpaths(opts)
 
     log_unknown_keys()
     log_stats()
