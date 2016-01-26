@@ -212,11 +212,15 @@ def traverse_fpaths(opts, stats):
             Start points to scan.
             Must be unicode, and on *Windows* '\\?\' prefixed.
     """
+    def handle_bad_subdir(err):
+        stats.noaccess_nfiles += 1
+        log.error('%r: %s' % (err, err.filename))
+
     for fpath in opts.fpaths:
         if os.path.isfile(fpath):
             unlock_file(opts, stats, fpath)
         else:
-            for dirpath, _, files in os.walk(fpath):
+            for dirpath, _, files in os.walk(fpath, onerror=handle_bad_subdir):
                 stats.visited_ndirs += 1
                 if is_progess_time():
                     log_stats(stats, dirpath)
@@ -258,17 +262,19 @@ def log_stats(stats, fpath=''):
         prcnt = 100 * stats.visited_ndirs / stats.ndirs
         dir_progress = ' of %i(%0.2f%%)' % (stats.ndirs, prcnt)
     log.info("+++Dir %5i%s%s"
-            "\n    visited: %7i"
-            "\n     locked:%7i"
-            "\n     unlocked:%7i"
-            "\n    overwritten:%7i"
-            "\n      deleted:%7i"
-            "\n      skipped:%7i"
-            "\n      unknown:%7i"
-            "\n       failed:%7i",
-        stats.visited_ndirs, dir_progress, fpath, stats.visited_nfiles, stats.locked_nfiles,
-        stats.unlocked_nfiles, stats.overwrite_nfiles, stats.deleted_nfiles,
-        stats.skip_nfiles, stats.unknown_nfiles, stats.failed_nfiles)
+            "\n  dirs_visited: %7i"
+            "\n      noaccess: %7i"
+            "\n        locked:%7i"
+            "\n        unlocked:%7i"
+            "\n       overwritten:%7i"
+            "\n         deleted:%7i"
+            "\n         skipped:%7i"
+            "\n         unknown:%7i"
+            "\n          failed:%7i",
+        stats.visited_ndirs, dir_progress, fpath, stats.visited_nfiles,
+        stats.noaccess_nfiles, stats.locked_nfiles, stats.unlocked_nfiles,
+        stats.overwrite_nfiles, stats.deleted_nfiles, stats.skip_nfiles,
+        stats.unknown_nfiles, stats.failed_nfiles)
 
 
 
@@ -344,7 +350,7 @@ def main(args):
     stats = argparse.Namespace(ndirs = -1,
             visited_ndirs=0, visited_nfiles=0, locked_nfiles=0, unlocked_nfiles=0,
             overwrite_nfiles=0, deleted_nfiles=0, skip_nfiles=0, unknown_nfiles=0,
-            failed_nfiles=0, )
+            failed_nfiles=0, noaccess_nfiles=0)
 
     if opts.progress:
         stats.ndirs = count_subdirs(opts, stats)

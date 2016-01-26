@@ -40,8 +40,9 @@ that is relevant for this cracking tool:
 *TeslaCrack* implements (primarily) an integer factorization attack against
 the asymmetric scheme (breaking the encrypted-AES-key).
 The actual factorization is not implemented within *TeslaCrack*, instead,
-it extracts the numbers to be factored, which you will need to feed them into existing
-factoring tool, such as `YAFU or msieve <https://www.google.com/search?q=msieve+factorization>`_.
+it extracts the numbers to be factored, that you have to feed them into
+3rd party factoring tools, such as `YAFU or msieve
+<https://www.google.com/search?q=msieve+factorization>`_.
 
 The files performing most of the job are these two:
 
@@ -58,8 +59,7 @@ Installation
 
 You need a working Python 2.7 or Python-3.4+ environment,
 **preferably 64-bit** (if supported by your OS).
-A 32-bit Python can also work, but it will be significantly slower,
-and will require a different version of *pycryptodome* lib.
+A 32-bit Python can also work, but it will be significantly slower
 
 Install Python
 --------------
@@ -195,7 +195,7 @@ How to unlock your files
      Note that ``teslacrack.py`` can't decode the file format used by old TeslaCrypt,
      so you will need to perform the actual decryption using *TeslaDecoder*.
 
-7. Edit ``teslacrack.py``to add a new key-pair into the ``known_keys`` array
+7. Edit ``teslacrack.py`` to add a new key-pair into the ``known_keys`` dictionary
    like that::
 
       <encrypted-AES-key>: <1st decrypted-AES-key candidate>,
