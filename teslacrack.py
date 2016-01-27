@@ -123,8 +123,9 @@ def _needs_unlock(fname, exp_size, fix, overwrite):
     elif unlocked_exists:
         disk_size = os.stat(fname).st_size
         if disk_size != exp_size:
-            log.warn("Bad(?) locked-file had unexpected size(disk_size(%i) != %i): %s",
-                    disk_size, exp_size, fname)
+            log.warn("Bad(?) locked-file %r had unexpected size(disk_size(%i) != %i)! "
+                    "\n  Will be overwriten? %s",
+                    fname, disk_size, exp_size, bool(fix))
             should_unlock = fix
         else:
             should_unlock = False
@@ -163,13 +164,13 @@ def unlock_file(opts, stats, locked_fname):
             unlocked_exists, should_unlock, backup_ext = _needs_unlock(
                     unlocked_fname, size, opts.fix, opts.overwrite)
             if should_unlock:
+                log.debug("Unlocking%s%s%s: %s",
+                        '(overwrite)' if unlocked_exists else '',
+                        '(backup)' if unlocked_exists and backup_ext else '',
+                        '(dry-run)' if opts.dry_run else '', locked_fname)
                 if unlocked_exists and backup_ext:
-                    log.debug("Backing-up: %s --> %s", unlocked_fname, backup_ext)
                     backup_fname = unlocked_fname + backup_ext
                     opts.dry_run or shutil.move(unlocked_fname, backup_fname)
-                log.debug("Unlocking%s%s: %s",
-                        '(overwrite)' if unlocked_exists else '',
-                        '(dry-run)' if opts.dry_run else '', locked_fname)
                 decryptor = AES.new(
                         fix_key(aes_key),
                         AES.MODE_CBC, header[0x18a:0x19a])
