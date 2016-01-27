@@ -195,8 +195,8 @@ How to unlock your files
      Note that ``teslacrack.py`` can't decode the file format used by old TeslaCrypt,
      so you will need to perform the actual decryption using *TeslaDecoder*.
 
-7. Edit ``teslacrack.py`` to add a new key-pair into the ``known_keys`` dictionary
-   like that::
+7. Edit ``teslacrack.py`` to add a new key-pair into the ``known_AES_key_pairs``
+   dictionary, like that::
 
       <encrypted-AES-key>: <1st decrypted-AES-key candidate>,
 

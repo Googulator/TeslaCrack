@@ -50,8 +50,8 @@ This script requires pycrypto to be installed.
 
 To use, factor the 2nd hex string found in the headers of affected files using msieve.
 The AES-256 key will be one of the factors, typically not a prime - experiment to see which one works.
-Insert the hex string & AES key below, under known_keys, then run on affected directory.
-If an unknown key is reported, crack that one using msieve, then add to known_keys and re-run.
+Insert the hex string & AES key below, under known_AES_key_pairs, then run on affected directory.
+If an unknown key is reported, crack that one using msieve, then add to known_AES_key_pairs and re-run.
 
 Enjoy! ;)
 """
@@ -71,8 +71,10 @@ from Crypto.Cipher import AES
 
 log = logging.getLogger('teslacrack')
 
-# Add your (AES-key: priv-key) pairs here, like the examples below.
-known_keys = {
+## Add your (encrypted-AES-key: reconstructed-AES-key) pair(s) here,
+#  like the examples below:
+#
+known_AES_key_pairs = {
     b'D4E0010A8EDA7AAAE8462FFE9562B29871B9DA186D98B5B15EC9F77803B60EAB12ADDF78CBD4D9314A0C31270CC8822DCC071D10193D1E612360B26582DAF124': b'\xEA\x68\x5A\x3C\xDB\x78\x0D\xF2\x12\xEB\xAA\x50\x03\xAD\xC3\xE1\x04\x06\x3E\xBC\x25\x93\x52\xC5\x09\x88\xB7\x56\x1A\xD1\x34\xA5',
     b'9F2874FB536C0A6EF7B296416A262A8A722A38C82EBD637DB3B11232AE0102153C18837EFB4558E9E2DBFC1BB4BE799AE624ED717A234AFC5E2F8E2668C76B6C': b'\xCD\x0D\x0D\x54\xC4\xFD\xB7\x64\x7C\x4D\xB0\x95\x6A\x30\x46\xC3\x4E\x38\x5B\x51\xD7\x35\xD1\x7C\x00\x9D\x47\x3E\x02\x84\x27\x95',
     b'115DF08B0956AEDF0293EBA00CCD6793344D6590D234FE0DF2E679B7159E8DB05F960455F17CDDCE094420182484E73D4041C39531B5B8E753E562910561DE52': b'\x1A\xDC\x91\x33\x3E\x8F\x6B\x59\xBB\xCF\xB3\x34\x51\xD8\xA3\xA9\x4D\x14\xB3\x84\x15\xFA\x33\xC0\xF7\xFB\x69\x59\x20\xD3\x61\x8F',
@@ -106,19 +108,19 @@ def fix_key(key):
     return key
 
 
-def _decide_ext(ext):
+def _decide_backup_ext(ext):
     """Strange logic here, see :func:`_argparse_ext_type()`."""
     if not ext or isinstance(ext, bool):
         ext = None
     return ext
 
 
-def needs_unlock(fname, exp_size, fix, overwrite):
+def _needs_unlock(fname, exp_size, fix, overwrite):
     """Returns (file_exist?  should_unlock?  what_backup_ext?)."""
-    fexists = os.path.isfile(fname)
+    unlocked_exists = os.path.isfile(fname)
     if overwrite:
         should_unlock = overwrite
-    elif fexists:
+    elif unlocked_exists:
         disk_size = os.stat(fname).st_size
         if disk_size != exp_size:
             log.warn("Bad(?) locked-file had unexpected size(disk_size(%i) != %i): %s",
@@ -128,74 +130,71 @@ def needs_unlock(fname, exp_size, fix, overwrite):
             should_unlock = False
     else:
         should_unlock = True
-    return fexists, should_unlock, _decide_ext(should_unlock)
+    return unlocked_exists, should_unlock, _decide_backup_ext(should_unlock)
 
 
-def unlock_file(opts, stats, fpath):
+def unlock_file(opts, stats, locked_fname):
     try:
         stats.visited_nfiles += 1
-        if not os.path.splitext(fpath)[1] in tesla_extensions:
-            return
-
-        stats.locked_nfiles += 1
         do_unlink = False
-        with open(fpath, "rb") as fin:
+        with open(locked_fname, "rb") as fin:
             header = fin.read(414)
 
             if header[:5] not in known_file_magics:
-                log.info("File %r doesn't appear to be TeslaCrypted.", fpath)
-                stats.skip_nfiles += 1
+                log.info("File %r doesn't appear to be TeslaCrypted.", locked_fname)
+                stats.badheader_nfiles += 1
                 return
 
             aes_encrypted_key = header[0x108:0x188].rstrip(b'\0')
-            if aes_encrypted_key not in known_keys:
+            aes_key = known_AES_key_pairs.get(aes_encrypted_key)
+            if not aes_key:
                 if aes_encrypted_key not in unknown_keys:
-                    unknown_keys[aes_encrypted_key] = fpath
+                    unknown_keys[aes_encrypted_key] = locked_fname
                 btc_key = header[0x45:0xc5].rstrip(b'\0')
                 if btc_key not in unknown_btkeys:
-                    unknown_btkeys[btc_key] = fpath
-                log.warn("Unknown key in file: %s", fpath)
+                    unknown_btkeys[btc_key] = locked_fname
+                log.warn("Unknown key in file: %s", locked_fname)
                 stats.unknown_nfiles += 1
                 return
 
 
             size = struct.unpack('<I', header[0x19a:0x19e])[0]
-            orig_fname = os.path.splitext(fpath)[0]
-            unlocked_exists, should_unlock, backup_ext = needs_unlock(
-                    orig_fname, size, opts.fix, opts.overwrite)
+            unlocked_fname = os.path.splitext(locked_fname)[0]
+            unlocked_exists, should_unlock, backup_ext = _needs_unlock(
+                    unlocked_fname, size, opts.fix, opts.overwrite)
             if should_unlock:
                 if unlocked_exists and backup_ext:
-                    log.debug("Backing-up: %s --> %s", orig_fname, backup_ext)
-                    backup_fname = orig_fname + backup_ext
-                    opts.dry_run or shutil.move(orig_fname, backup_fname)
+                    log.debug("Backing-up: %s --> %s", unlocked_fname, backup_ext)
+                    backup_fname = unlocked_fname + backup_ext
+                    opts.dry_run or shutil.move(unlocked_fname, backup_fname)
                 log.debug("Unlocking%s%s: %s",
                         '(overwrite)' if unlocked_exists else '',
-                        '(dry-run)' if opts.dry_run else '', fpath)
+                        '(dry-run)' if opts.dry_run else '', locked_fname)
                 decryptor = AES.new(
-                        fix_key(known_keys[aes_encrypted_key]),
+                        fix_key(aes_key),
                         AES.MODE_CBC, header[0x18a:0x19a])
                 data = decryptor.decrypt(fin.read())[:size]
                 if not opts.dry_run:
-                    with open(orig_fname, 'wb') as fout:
+                    with open(unlocked_fname, 'wb') as fout:
                         fout.write(data)
                 if opts.delete and not unlocked_exists or opts.delete_old:
                     do_unlink = True
                 stats.unlocked_nfiles += 1
                 stats.overwrite_nfiles += unlocked_exists
             else:
-                log.debug("Skip %r, already unlocked.", fpath)
+                log.debug("Skip %r, already unlocked.", locked_fname)
                 stats.skip_nfiles += 1
                 if opts.delete_old:
                     do_unlink = True
         if do_unlink:
             log.debug("Deleting%s: %s",
-                    '(dry-run)' if opts.dry_run else '', fpath)
-            opts.dry_run or os.unlink(fpath)
+                    '(dry-run)' if opts.dry_run else '', locked_fname)
+            opts.dry_run or os.unlink(locked_fname)
             stats.deleted_nfiles += 1
     except Exception as e:
         stats.failed_nfiles += 1
         log.error("Error unlocking %r due to %r!  Please try again.",
-                fpath, e, exc_info=opts.verbose)
+                locked_fname, e, exc_info=opts.verbose)
 
 
 def is_progess_time():
@@ -216,9 +215,14 @@ def traverse_fpaths(opts, stats):
         stats.noaccess_nfiles += 1
         log.error('%r: %s' % (err, err.filename))
 
+    def scan_file(fname):
+        stats.scanned_nfiles += 1
+        if os.path.splitext(fname)[1] in tesla_extensions:
+            unlock_file(opts, stats, os.path.join(dirpath, f))
+
     for fpath in opts.fpaths:
         if os.path.isfile(fpath):
-            unlock_file(opts, stats, fpath)
+            scan_file(fpath)
         else:
             for dirpath, _, files in os.walk(fpath, onerror=handle_bad_subdir):
                 stats.visited_ndirs += 1
@@ -226,7 +230,7 @@ def traverse_fpaths(opts, stats):
                     log_stats(stats, dirpath)
                     log_unknown_keys()
                 for f in files:
-                    unlock_file(opts, stats, os.path.join(dirpath, f))
+                    scan_file(os.path.join(dirpath, f))
 
 
 def count_subdirs(opts, stats):
@@ -262,30 +266,32 @@ def log_stats(stats, fpath=''):
         prcnt = 100 * stats.visited_ndirs / stats.ndirs
         dir_progress = ' of %i(%0.2f%%)' % (stats.ndirs, prcnt)
     log.info("+++Dir %5i%s%s"
-            "\n  dirs_visited: %7i"
+            "\n       scanned: %7i"
             "\n      noaccess: %7i"
             "\n        locked:%7i"
+            "\n       badheader:%7i"
             "\n        unlocked:%7i"
             "\n       overwritten:%7i"
             "\n         deleted:%7i"
             "\n         skipped:%7i"
             "\n         unknown:%7i"
             "\n          failed:%7i",
-        stats.visited_ndirs, dir_progress, fpath, stats.visited_nfiles,
-        stats.noaccess_nfiles, stats.locked_nfiles, stats.unlocked_nfiles,
-        stats.overwrite_nfiles, stats.deleted_nfiles, stats.skip_nfiles,
-        stats.unknown_nfiles, stats.failed_nfiles)
-
+        stats.visited_ndirs, dir_progress, fpath, stats.scanned_nfiles,
+        stats.noaccess_nfiles, stats.visited_nfiles, stats.badheader_nfiles,
+        stats.unlocked_nfiles, stats.overwrite_nfiles, stats.deleted_nfiles,
+        stats.skip_nfiles, stats.unknown_nfiles, stats.failed_nfiles)
 
 
 def _path_to_ulong(path):
     """Support Long Unicode paths and handle `C: --> C:\<current-dir>` on *Windows*."""
+    win_prefix = '\\\\?\\'
     if _PY2:
         path = unicode(path, filenames_encoding)  # @UndefinedVariable
-    if os.name == 'nt' or sys.platform == 'cygwin': ## But cygwin is missing cryptodome lib.
+    if os.name == 'nt' or sys.platform == 'cygwin':  ## But cygwin is missing cryptodome lib.
         if path.endswith(':'):
             path += '\\'
-        path = r'\\?\%s' % os.path.abspath(path)
+        if not path.startswith(win_prefix):
+            path = win_prefix + os.path.abspath(path)
     return path
 
 
@@ -348,9 +354,9 @@ def main(args):
     opts.fpaths = [_path_to_ulong(f) for f in opts.fpaths]
 
     stats = argparse.Namespace(ndirs = -1,
-            visited_ndirs=0, visited_nfiles=0, locked_nfiles=0, unlocked_nfiles=0,
+            visited_ndirs=0, scanned_nfiles=0, visited_nfiles=0, unlocked_nfiles=0,
             overwrite_nfiles=0, deleted_nfiles=0, skip_nfiles=0, unknown_nfiles=0,
-            failed_nfiles=0, noaccess_nfiles=0)
+            failed_nfiles=0, noaccess_nfiles=0, badheader_nfiles=0)
 
     if opts.progress:
         stats.ndirs = count_subdirs(opts, stats)
