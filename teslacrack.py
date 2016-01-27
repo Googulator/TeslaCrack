@@ -95,8 +95,8 @@ known_file_magics = [b'\xde\xad\xbe\xef\x04', b'\x00\x00\x00\x00\x04']
 unknown_keys = {}
 unknown_btkeys = {}
 
-PROGRESS_INTERVAL_SEC = 7 # Log stats every that many files processed.
-_last_progress_time = time.time()
+PROGRESS_INTERVAL_SEC = 3 # Log stats every that many files processed.
+_last_progress_time = 0#time.time()
 
 
 _PY2 = sys.version_info[0] == 2
@@ -134,9 +134,8 @@ def _needs_unlock(fname, exp_size, fix, overwrite):
 
 
 def unlock_file(opts, stats, locked_fname):
+    do_unlink = False
     try:
-        stats.visited_nfiles += 1
-        do_unlink = False
         with open(locked_fname, "rb") as fin:
             header = fin.read(414)
 
@@ -144,6 +143,7 @@ def unlock_file(opts, stats, locked_fname):
                 log.info("File %r doesn't appear to be TeslaCrypted.", locked_fname)
                 stats.badheader_nfiles += 1
                 return
+            stats.locked_nfiles += 1
 
             aes_encrypted_key = header[0x108:0x188].rstrip(b'\0')
             aes_key = known_AES_key_pairs.get(aes_encrypted_key)
@@ -186,15 +186,21 @@ def unlock_file(opts, stats, locked_fname):
                 stats.skip_nfiles += 1
                 if opts.delete_old:
                     do_unlink = True
-        if do_unlink:
-            log.debug("Deleting%s: %s",
-                    '(dry-run)' if opts.dry_run else '', locked_fname)
-            opts.dry_run or os.unlink(locked_fname)
-            stats.deleted_nfiles += 1
     except Exception as e:
         stats.failed_nfiles += 1
         log.error("Error unlocking %r due to %r!  Please try again.",
                 locked_fname, e, exc_info=opts.verbose)
+
+    if do_unlink:
+        try:
+            log.debug("Deleting%s: %s",
+                    '(dry-run)' if opts.dry_run else '', locked_fname)
+            opts.dry_run or os.unlink(locked_fname)
+            stats.deleted_nfiles += 1
+        except Exception as e:
+            stats.failed_nfiles += 1
+            log.warn("Error deleting %r due to %r!.",
+                    locked_fname, e, exc_info=opts.verbose)
 
 
 def is_progess_time():
@@ -212,12 +218,12 @@ def traverse_fpaths(opts, stats):
             Must be unicode, and on *Windows* '\\?\' prefixed.
     """
     def handle_bad_subdir(err):
-        stats.noaccess_nfiles += 1
+        stats.noaccess_ndirs += 1
         log.error('%r: %s' % (err, err.filename))
 
     def scan_file(fname):
-        stats.scanned_nfiles += 1
         if os.path.splitext(fname)[1] in tesla_extensions:
+            stats.tesla_nfiles += 1
             unlock_file(opts, stats, os.path.join(dirpath, f))
 
     for fpath in opts.fpaths:
@@ -226,6 +232,7 @@ def traverse_fpaths(opts, stats):
         else:
             for dirpath, _, files in os.walk(fpath, onerror=handle_bad_subdir):
                 stats.visited_ndirs += 1
+                stats.scanned_nfiles += len(files)
                 if is_progess_time():
                     log_stats(stats, dirpath)
                     log_unknown_keys()
@@ -267,19 +274,21 @@ def log_stats(stats, fpath=''):
         dir_progress = ' of %i(%0.2f%%)' % (stats.ndirs, prcnt)
     log.info("+++Dir %5i%s%s"
             "\n       scanned: %7i"
-            "\n      noaccess: %7i"
-            "\n        locked:%7i"
+            "\n  noAccessDirs: %7i"
+            "\n    teslaFiles:%7i"
             "\n       badheader:%7i"
-            "\n        unlocked:%7i"
-            "\n       overwritten:%7i"
-            "\n         deleted:%7i"
-            "\n         skipped:%7i"
-            "\n         unknown:%7i"
-            "\n          failed:%7i",
-        stats.visited_ndirs, dir_progress, fpath, stats.scanned_nfiles,
-        stats.noaccess_nfiles, stats.visited_nfiles, stats.badheader_nfiles,
-        stats.unlocked_nfiles, stats.overwrite_nfiles, stats.deleted_nfiles,
-        stats.skip_nfiles, stats.unknown_nfiles, stats.failed_nfiles)
+            "\n          locked:%7i"
+            "\n          unlocked:%7i"
+            "\n           skipped:%7i"
+            "\n           unknown:%7i"
+            "\n            failed:%7i"
+            "\n\n       overwritten:%7i"
+            "\n           deleted:%7i"
+        , stats.visited_ndirs, dir_progress, fpath, stats.scanned_nfiles,
+        stats.noaccess_ndirs, stats.tesla_nfiles, stats.badheader_nfiles,
+        stats.locked_nfiles, stats.unlocked_nfiles, stats.skip_nfiles,
+        stats.unknown_nfiles, stats.failed_nfiles, stats.overwrite_nfiles,
+        stats.deleted_nfiles)
 
 
 def _path_to_ulong(path):
@@ -314,9 +323,10 @@ def _parse_args(args):
     ap.add_argument('-n', '--dry-run', action='store_true',
             help="Unlock but don't Write/Delete files, just report actions performed "
             "[default: %(default)r].")
-    ap.add_argument('--delete', action='store_true',
+    xgroup_delete = ap.add_mutually_exclusive_group()
+    xgroup_delete.add_argument('--delete', action='store_true',
             help="Delete locked-files after unlocking them.")
-    ap.add_argument('--delete-old', action='store_true',
+    xgroup_delete.add_argument('--delete-old', action='store_true',
             help="Delete locked even if unlocked-file created during a previous run "
             "[default: %(default)r].")
     ap.add_argument('--progress', action='store_true',
@@ -326,15 +336,17 @@ def _parse_args(args):
             help="Unlock but don't Write/Delete files, just report actions performed "
             "[default: %(default)r].")
     ap.add_argument('--version', action='version', version='%(prog)s 2.0')
-    xgroup = ap.add_mutually_exclusive_group()
-    xgroup.add_argument('--fix', nargs='?', type=_argparse_ext_type, metavar='<.ext>', default=False, const='.BAK',
+    xgroup_overwrite = ap.add_mutually_exclusive_group()
+    xgroup_overwrite.add_argument('--fix', nargs='?',
+            type=_argparse_ext_type, metavar='<.ext>', default=False, const='.BAK',
             help="Re-unlock tesla-files and overwrite locked-counterparts if they have unexpected size. "
             "By default, backs-up existing files with '%(const)s' extension. "
             "Specify empty('') extension for no backup (eg. `--fix=`) "
             "WARNING: You may LOOSE FILES that have changed due to regular use, "
             "such as, configuration-files and mailboxes! "
             "[default: %(default)s]. ")
-    xgroup.add_argument('--overwrite', nargs='?', type=_argparse_ext_type, metavar='<.ext>', default=False, const=True,
+    xgroup_overwrite.add_argument('--overwrite', nargs='?',
+            type=_argparse_ext_type, metavar='<.ext>', default=False, const=True,
             help="Re-unlock ALL tesla-files, overwritting all locked-counterparts. "
             "Optionally creates backups with the given extension. "
             "WARNING: You may LOOSE FILES that have changed due to regular use, "
@@ -354,9 +366,10 @@ def main(args):
     opts.fpaths = [_path_to_ulong(f) for f in opts.fpaths]
 
     stats = argparse.Namespace(ndirs = -1,
-            visited_ndirs=0, scanned_nfiles=0, visited_nfiles=0, unlocked_nfiles=0,
-            overwrite_nfiles=0, deleted_nfiles=0, skip_nfiles=0, unknown_nfiles=0,
-            failed_nfiles=0, noaccess_nfiles=0, badheader_nfiles=0)
+            visited_ndirs=0, scanned_nfiles=0, noaccess_ndirs=0,
+            tesla_nfiles=0, locked_nfiles=0, unlocked_nfiles=0, badheader_nfiles=0,
+            skip_nfiles=0, unknown_nfiles=0, failed_nfiles=0, deleted_nfiles=0,
+            overwrite_nfiles=0, badexisting_nfiles=0)
 
     if opts.progress:
         stats.ndirs = count_subdirs(opts, stats)
