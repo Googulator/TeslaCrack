@@ -1,5 +1,5 @@
 ##########################################################
-TeslaCrack - decrypt files locked by TeslaCrypt ransomware
+TeslaCrack - decrypt files crypted by TeslaCrypt ransomware
 ##########################################################
 |pypi-ver| |flattr-donate| |btc-donate|
 
@@ -8,7 +8,7 @@ TeslaCrack - decrypt files locked by TeslaCrypt ransomware
 :Author:      Googulator
 
 
-This is a tool for unlocking files that were locked with the latest version
+This is a tool for decrypting files that were crypted with the latest version
 (variously known as "v8" or "v2.2.0") of the **TeslaCrypt ransomware**.
 This new version can be recognized from the extensions ``.vvv, .ccc,  .zzz, .aaa, .abc``
 added to the names of you original files, and/or the filenames of the ransom notes
@@ -28,13 +28,13 @@ We recapitulate `how TeslaCrypt ransomware works and explain the weakness
 that is relevant for this cracking tool:
 
 1. *TeslaCrypt* creates a symmetrical AES-session-key that will be used to
-   encrypt ("lock") your files,
+   encrypt your files,
 2. it then asymmetrically ECDH-encrypts that AES-key and transmits the private-ECDH-key
    to the operators of the ransomware (but that is irrelevant here), and finally
-3. it starts locking your files one-by-one, attaching the encrypted-AES-key
+3. it starts crypting your files one-by-one, attaching the encrypted-AES-key
    into their header.
 
-- Multiple AES-keys are generated if you interrupt the ransomware while it locks
+- Multiple AES-keys are generated if you interrupt the ransomware while it crypts
   your files (i.e. reboot).
 
 *TeslaCrack* implements (primarily) an integer factorization attack against
@@ -49,7 +49,7 @@ The files performing most of the job are these two:
 - ``teslacrack.py``: parses the headers from the tesla-files,
   extracts their encrypted-AES-keys, and if their corresponding decrypted-key
   has already been reconstructed earlier (by following the steps described below),
-  and unlocks files.
+  and decrypts files.
 - ``unfactor.py``: reconstructs an AES-key from a factorized(externally)
   encrypted-AES-key.
 
@@ -79,7 +79,7 @@ In *Windows*, the following 2 alternatives have been tested:
   **must run all commands from the included command-prompt executable**.
   And although  they **do not require admin-rights to install**,
   you most probably **need admin-rights** when running `teslacrack.py`,
-  if the files to unlock originate from a different user.
+  if the files to decrypt originate from a different user.
 
 Install TeslaCrypt
 ------------------
@@ -106,10 +106,10 @@ Install TeslaCrypt
    in a few hours, with some unlucky keys possibly taking up to a week.
 
 
-How to unlock your files
+How to decrypt your files
 =========================
 
-1. Collect a "locked" file from the attacked machine in your *working folder*.
+1. Collect a "crypted" file from the attacked machine in your *working folder*.
    Choose a file with a known initial magic number - ``unfactor.py`` is pre-configured
    for working with PDF files; change the magic number in ``unfactor.py`` from '%PDF'
    to the correct value if you did not selected a PDF:
@@ -123,7 +123,7 @@ How to unlock your files
    Note that commands below assume that your *working folder* is the one
    containing ``unfactor.py`` and ``teslacrack.py`` files.
 
-2. If the extension of your locked files is not one of
+2. If the extension of your crypted files is not one of
    ``.vvv, .ccc,  .zzz, .aaa, .abc``, edit ``teslacrack.py`` to append it
    into ``tesla_extensions`` string-list.
 
@@ -132,8 +132,8 @@ How to unlock your files
         variant of TeslaCrypt (3.0).
 
 
-3. Enter this command in your working folder to process your locked file
-   (notice the ``.`` at the end,; you may use the name of your locked file instead)::
+3. Enter this command in your working folder to process your crypted file
+   (notice the ``.`` at the end,; you may use the name of your crypted file instead)::
 
        python -v teslacrack.py .
 
@@ -165,9 +165,9 @@ How to unlock your files
      run slow), use ``factmsieve.py`` (downloaded optionally above), which is
      more complicated, but also faster, multithreaded, and doesn't tend to crash.
 
-6. To reconstruct the AES-key that has locked your files, run::
+6. To reconstruct the AES-key that has crypted your files, run::
 
-       python unfactor.py  <lockeded file>  <primes from previous step, separated by spaces>
+       python unfactor.py  <crypteded file>  <primes from previous step, separated by spaces>
 
    It will reconstruct and print any decrypted AES-keys candidates (usually just one).
 
@@ -200,47 +200,47 @@ How to unlock your files
 
       <encrypted-AES-key>: <1st decrypted-AES-key candidate>,
 
-8. Repeat step 3. An unlocked file should now appear next to the locked one
-   (``.vvv``, ``.ccc``, etc) - verify that the contents of the unlocked-file
+8. Repeat step 3. A decrypted file should now appear next to the crypted one
+   (``.vvv``, ``.ccc``, etc) - verify that the contents of the decrypted-file
    do make sense.
 
    - If not, redo step 7, replacing every time a new candidate decrypted AES-key
      in the pair.
 
-9. To unlock all of your files run from an administrator command prompt::
+9. To decrypt all of your files run from an administrator command prompt::
 
         python teslacrack.py --progress D:\\
 
    - In some cases you may start receiving error-messages, saying
      ``"Unknown key in file: some/file"``.
-     This means that some of your files have been locked with different
+     This means that some of your files have been crypted with different
      AES-keys (i.e. the ransomware had been restarted due to a reboot).
      ``teslacrack.py`` will print at the end any new encrypted AES-key(s)
      encountered - repeat the procedure from step 4 for all newly discovered
      key(s) :-(
 
    - ``teslacrack.py`` accepts an optional ``--delete`` and ``--delete-old``
-     parameters, which will delete the locked-files of any cleartext file it
+     parameters, which will delete the crypted-files of any cleartext file it
      successfully generates (or already has generated, for the 2nd option).
      Before using this option, make sure that your files have been indeed
-     unlocked correctly!
+     decrypted correctly!
 
    - By skipping this time the ``-v`` option (verbose logging) you avoid listing
      every file being visited - only failures and totals are reported.
 
    - Use ``--overwrite`` or the more "selective" ``--fix`` option to
      re-generate all cleartext files or just those that had previously failed to
-     unlock, respectively.  They both accept an optional *file-extension*
+     decrypt, respectively.  They both accept an optional *file-extension*
      to construct the backup filename.
      Note that by default ``--overwrite`` does not make backups, while
      ``-fix`` option, does.
 
-   - If you are going to unlock 1000s of file (i.e ``D:\\``), it's worth
+   - If you are going to decrypt 1000s of file (i.e ``D:\\``), it's worth
      using the ``--precount`` option; it will consume some initial time to
      pre-calculate directories to be visited, and then a progress-indicator
-     will be printed while unlocking.
+     will be printed while decrypting.
 
-   - Finally, You can "dry-run" all of the above (unlocking, deletion and backup)
+   - Finally, You can "dry-run" all of the above (decrypting, deletion and backup)
      with the ``-n`` option.
 
    - Read decriptions for available options with::
