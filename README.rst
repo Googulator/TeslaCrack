@@ -154,7 +154,7 @@ How to decrypt your files
 
      The ``-e`` switch is needed to do a "deep" elliptic curve search,
      which speeds up *msieve* for numbers with many factors (by default,
-     *msieve* is optimized for semiprimes such as moduli)
+     *msieve* is optimized for semiprimes such as RSA moduli)
 
    - Alternatively, you can use *YAFU*, which is multithreaded, but
      tends to crash often (at least for me)
