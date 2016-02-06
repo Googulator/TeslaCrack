@@ -4,7 +4,7 @@ TestCases for teslacrypt.
 It needs a `bash` (cygwin or git-for-windows) because that was an easy way
 to make files/dirs inaccessible, needed for TCs.
 """
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 
 import argparse
 import binascii

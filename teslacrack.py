@@ -302,7 +302,10 @@ def _path_to_ulong(path):
     """Support Long Unicode paths and handle `C: --> C:\<current-dir>` on *Windows*."""
     win_prefix = '\\\\?\\'
     if _PY2:
-        path = unicode(path, filenames_encoding)  # @UndefinedVariable
+        try:
+            path = unicode(path, filenames_encoding)  # @UndefinedVariable
+        except:
+            pass
     if os.name == 'nt' or sys.platform == 'cygwin':  ## But cygwin is missing cryptodome lib.
         if path.endswith(':'): ## Avoid Windows's per-drive "remembered" cwd.
             path += '\\'
