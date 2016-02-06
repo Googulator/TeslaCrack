@@ -6,6 +6,7 @@ import sys
 
 from Crypto.Cipher import AES
 
+
 known_file_magics = {
     'pdf': b'%PDF',
     'doc': b'\xd0\xcf\x11\xe0',
@@ -23,6 +24,9 @@ tesla_magics = [b'\xde\xad\xbe\xef\x04', b'\x00\x00\x00\x00\x04']
 
 log = logging.getLogger('unfactor')
 
+
+class CrackException(Exception):
+    pass
 
 
 def fix_key(key):
@@ -50,23 +54,26 @@ def undecrypt(fpath, primes):
         xrange = range
 
     prod = 1
-    for p in primes:
+    for i, p in enumerate(primes):
         if p >= 1<<256:
-            return "Factor too large: %s" % p
+            raise CrackException("Factor no%i too large: %s" % (i, p))
         prod *= p
 
     with open(fpath, "rb") as f:
         header = f.read(414)
         if header[:5] not in tesla_magics:
-            return fpath + " doesn't appear to be TeslaCrypted"
+            raise CrackException(
+                    "File %s doesn't appear to be TeslaCrypted!", fpath)
         ecdh = int(header[0x108:0x188].rstrip(b'\0'), 16)
-        cofactor = ecdh//prod
         if prod > ecdh:
-            return "Superfluous factors or incorrect factorization detected!"
+            raise CrackException(
+                    "Superfluous factors given, or factorization was incorrect!")
+        cofactor = ecdh // prod
         if cofactor*prod != ecdh:
-            return "Error: factors don't divide AES pubkey"
+            raise CrackException("Factors don't divide AES pubkey!")
         if cofactor != 1:
-            ret += "Warning: incomplete factorization, found cofactor %d\n" % cofactor
+            log.warning("Incomplete factorization, found cofactor: %d",
+                    cofactor)
 
         data = f.read(16)
         init_vector = header[0x18a:0x19a]
@@ -122,4 +129,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 3:
         print("usage: unfactor.py <sample file> <space-separated list of factors>")
         exit()
-    print(main())
+    try:
+        print(main())
+    except CrackException as ex:
+        log.error("Reconstruction failed! %s", ex)
