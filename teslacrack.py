@@ -156,7 +156,8 @@ def decrypt_file(opts, stats, crypted_fname):
                 btc_key = header[0x45:0xc5].rstrip(b'\0')
                 if btc_key not in unknown_btkeys:
                     unknown_btkeys[btc_key] = crypted_fname
-                log.warn("Unknown key in file: %s", crypted_fname)
+                log.warn("Unknown key: %s \n  in file: %s",
+                        aes_crypted_key, crypted_fname)
                 stats.unknown_nfiles += 1
                 return
 

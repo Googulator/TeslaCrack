@@ -10,6 +10,14 @@ known_file_magics = {
     'pdf': b'%PDF',
     'doc': b'\xd0\xcf\x11\xe0',
     'zip': 'PK', 'xlsx': b'PK', 'xlsmx': b'PK', 'docx': b'PK', 'odf': b'PK',
+    'jpg': b'\xFF\xD8\xFF',
+    'png': b'\x89PNG\r\n\x1A\n',
+    'mp3': b'\x42\x4D',
+    'gif': b'GIF89a', 'gif': b'GIF87a',
+    'bz2': b'BZh', 'tbz2': b'BZh',
+    'gz': b'\x1F\x8B', 'tgz': b'\x1F\x8B',
+    '7z': b'7z\xBC\xAF\x27\x1C',
+    'rar': b'Rar!\x1A\x07\x00',
 }
 tesla_magics = [b'\xde\xad\xbe\xef\x04', b'\x00\x00\x00\x00\x04']
 
@@ -29,7 +37,7 @@ def fix_hex_key(int_key):
 
 def is_known_file(fname, fbytes):
     for ext, magic_bytes in known_file_magics.items():
-        if '.%s.' % ext in fname and fbytes.startswith(magic_bytes):
+        if '.%s.' % ext in fname.lower() and fbytes.startswith(magic_bytes):
             return True
 
 
