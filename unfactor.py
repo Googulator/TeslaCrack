@@ -6,8 +6,15 @@ import sys
 
 from Crypto.Cipher import AES
 
+known_file_magics = {
+    'pdf': b'%PDF',
+    'doc': b'\xd0\xcf\x11\xe0',
+    'zip': 'PK', 'xlsx': b'PK', 'xlsmx': b'PK', 'docx': b'PK', 'odf': b'PK',
+}
+tesla_magics = [b'\xde\xad\xbe\xef\x04', b'\x00\x00\x00\x00\x04']
 
-log = logging.getLogger('undecrypt')
+log = logging.getLogger('unfactor')
+
 
 
 def fix_key(key):
@@ -15,9 +22,18 @@ def fix_key(key):
         key = key[1:] + b'\0'
     return key
 
-def undecrypt(file, primes, magic = b'%PDF'):
-    known_file_magics = [b'\xde\xad\xbe\xef\x04', b'\x00\x00\x00\x00\x04']
 
+def fix_hex_key(int_key):
+    return fix_key(binascii.unhexlify('%064x' % int_key))
+
+
+def is_known_file(fname, fbytes):
+    for ext, magic_bytes in known_file_magics.items():
+        if '.%s.' % ext in fname and fbytes.startswith(magic_bytes):
+            return True
+
+
+def undecrypt(fpath, primes):
     ret = ""
 
     try:
@@ -25,18 +41,16 @@ def undecrypt(file, primes, magic = b'%PDF'):
     except NameError:
         xrange = range
 
-    primes = [int(p) for p in primes]
-    log.info('Primes: \n  %s' % '\n  '.join(str(p) for p in primes))
     prod = 1
     for p in primes:
         if p >= 1<<256:
             return "Factor too large: %s" % p
         prod *= p
 
-    with open(file, "rb") as f:
+    with open(fpath, "rb") as f:
         header = f.read(414)
-        if header[:5] not in known_file_magics:
-            return file + " doesn't appear to be TeslaCrypted"
+        if header[:5] not in tesla_magics:
+            return fpath + " doesn't appear to be TeslaCrypted"
         ecdh = int(header[0x108:0x188].rstrip(b'\0'), 16)
         cofactor = ecdh//prod
         if prod > ecdh:
@@ -47,6 +61,11 @@ def undecrypt(file, primes, magic = b'%PDF'):
             ret += "Warning: incomplete factorization, found cofactor %d\n" % cofactor
 
         data = f.read(16)
+        init_vector = header[0x18a:0x19a]
+        def decrypt_AES_file(aes_key, data):
+            return AES.new(aes_key, AES.MODE_CBC, init_vector).decrypt(data)
+
+
         found = False
         i = 1
         while i < 1<<len(primes):
@@ -54,7 +73,8 @@ def undecrypt(file, primes, magic = b'%PDF'):
             for j in xrange(len(primes)):
                 if i & 1<<j:
                     x *= int(primes[j])
-            if x < 1<<256 and ecdh//x < 1<<256 and AES.new(fix_key(binascii.unhexlify('%064x' % x)), AES.MODE_CBC, header[0x18a:0x19a]).decrypt(data).startswith(magic):
+            if (x < 1<<256 and ecdh//x < 1<<256 and is_known_file(
+                    fpath, decrypt_AES_file(fix_hex_key(x), data))):
                 ret += "Candidate AES private key: b'\\x" + '\\x'.join([('%064x' % x)[i:i+2] for i in xrange(0, 64, 2)]) + ("' (%064X)" % x) + "\n"
                 found = True
             i += 1
@@ -65,7 +85,8 @@ def undecrypt(file, primes, magic = b'%PDF'):
                 for j in xrange(len(primes)):
                     if i & 1<<j:
                         x *= int(primes[j])
-                if x < 1<<256 and ecdh//x < 1<<256 and AES.new(fix_key(binascii.unhexlify('%064x' % x)), AES.MODE_CBC, header[0x18a:0x19a]).decrypt(data).startswith(magic):
+                if x < 1<<256 and ecdh//x < 1<<256 and is_known_file(
+                        fpath, decrypt_AES_file(fix_hex_key(x), data)):
                     ret += "Candidate AES private key: b'\\x" + '\\x'.join([('%064x' % x)[i:i+2] for i in xrange(0, 64, 2)]) + ("' (%064X)" % x) + "\n"
                 i += 1
 
@@ -83,7 +104,9 @@ def main(*args):
     log.debug('Args: %s', args)
 
     file = sys.argv[1]
-    primes = sys.argv[2:]
+    primes = [int(p) for p in sys.argv[2:]]
+    log.info('Primes: \n  %s' % '\n  '.join(str(p) for p in primes))
+
     return undecrypt(file, primes)
 
 

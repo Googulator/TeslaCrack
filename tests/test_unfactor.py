@@ -29,12 +29,11 @@ keys:
         - 23677274243760534899430414029178304942110152493113248247
       crypted_files:
         - tesla2.pdf.vvv
-        - tesla1.pdf.ccc
 
     - name     : hermanndp
       type     : AES
       encrypted: 07E18921C536C112A14966D4EAAD01F10537F77984ADAAE398048F12685E2870CD1968FE3317319693DA16FFECF6A78EDBC325DDA2EE78A3F9DF8EEFD40299D9
-      decrypted: \x1b\\R\xaa\xfc\xff\xda.q\x00\x1c\xf1\x88\x0f\xe4\\\xb9=\xeaLq2\x8d\xf5\x95\xcb^\xb8\x82\xa3\x97\x9f
+      decrypted: \x1b\x5c\x52\xaa\xfc\xff\xda\x2e\x71\x00\x1c\xf1\x88\x0f\xe4\x5c\xb9\x3d\xea\x4c\x71\x32\x8d\xf5\x95\xcb\x5e\xb8\x82\xa3\x97\x9f'
       factors  :
         - 13
         - 3631
@@ -71,6 +70,7 @@ class TUnfactor(unittest.TestCase):
             factors = [int(fc) for fc in key_rec['factors']]
             exp_aes_key = key_rec['decrypted']
             aes_key = unfactor.undecrypt(f, factors)
+            #print(key_rec['name'], f, aes_key, exp_aes_key)
             self.assertIn(exp_aes_key, aes_key,
                     (key_rec['name'], f, aes_key, exp_aes_key))
 

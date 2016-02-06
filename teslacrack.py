@@ -86,12 +86,12 @@ known_AES_key_pairs = {
 #  Note that '.xxx', '.micro' and '.ttt' are crypted by a new variant
 #  of teslacrypt (3.0).
 tesla_extensions = ['.vvv', '.ccc',  '.zzz', '.aaa', '.abc']
+tesla_magics = [b'\xde\xad\xbe\xef\x04', b'\x00\x00\x00\x00\x04']
 
 ## If i18n-filenames are destroyed, experiment with this.
 #  e.g. 'UTF-8', 'iso-8859-9', 'CP437', 'CP1252'
 filenames_encoding = sys.getfilesystemencoding()
 
-known_file_magics = [b'\xde\xad\xbe\xef\x04', b'\x00\x00\x00\x00\x04']
 
 unknown_keys = {}
 unknown_btkeys = {}
@@ -142,17 +142,17 @@ def decrypt_file(opts, stats, crypted_fname):
         with open(crypted_fname, "rb") as fin:
             header = fin.read(414)
 
-            if header[:5] not in known_file_magics:
+            if header[:5] not in tesla_magics:
                 log.info("File %r doesn't appear to be TeslaCrypted.", crypted_fname)
                 stats.badheader_nfiles += 1
                 return
             stats.crypted_nfiles += 1
 
-            aes_encrypted_key = header[0x108:0x188].rstrip(b'\0')
-            aes_key = known_AES_key_pairs.get(aes_encrypted_key)
+            aes_crypted_key = header[0x108:0x188].rstrip(b'\0')
+            aes_key = known_AES_key_pairs.get(aes_crypted_key)
             if not aes_key:
-                if aes_encrypted_key not in unknown_keys:
-                    unknown_keys[aes_encrypted_key] = crypted_fname
+                if aes_crypted_key not in unknown_keys:
+                    unknown_keys[aes_crypted_key] = crypted_fname
                 btc_key = header[0x45:0xc5].rstrip(b'\0')
                 if btc_key not in unknown_btkeys:
                     unknown_btkeys[btc_key] = crypted_fname
