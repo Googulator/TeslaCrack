@@ -375,6 +375,7 @@ def teslacrack(opts):
     log_unknown_keys()
     log_stats(stats)
 
+    return stats
 
 def main(*args):
     """Parse args, setup logging and delegate to :func:`teslacrack()`."""
