@@ -1,6 +1,15 @@
+"""
+TestCases for teslacrypt.
+
+It needs a `bash` (cygwin or git-for-windows) because that was an easy way
+to make files/dirs inaccessible, needed for TCs.
+"""
+from __future__ import print_function
+
 import argparse
+import glob
 import os
-import stat
+import sys
 import textwrap
 import unittest
 
@@ -9,7 +18,6 @@ import yaml
 
 import teslacrack
 import unfactor
-import glob
 
 
 app_db_txt = r"""
@@ -49,6 +57,7 @@ keys:
       crypted_files:
         - tesla_key3.doc.vvv
         - tesla_key3.pdf.zzz
+
 """
 
 # def config_yaml():
@@ -67,6 +76,9 @@ app_db = read_app_db()
 
 @ddt.ddt
 class TUnfactor(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        os.chdir(os.path.dirname(__file__))
 
     @ddt.data(*[k for k in app_db['keys'] if k['type'] == 'AES'])
     def test_undecrypt_AES_keys(self, key_rec):
@@ -78,14 +90,32 @@ class TUnfactor(unittest.TestCase):
             self.assertIn(exp_aes_key, aes_key,
                     (key_rec['name'], f, aes_key, exp_aes_key))
 
+def chmod(mode, files):
+    files = ' '.join("'%s'" % f for f in files)
+    cmd = 'bash -c "chmod %s %s"' % (mode, files)
+    ret = os.system(cmd)
+    if ret:
+        print("Bash-cmd `chmod` failed with: %s "
+              "\n  TCs below may also fail, unless you mark manually `unreadable*` files!"
+              % ret,
+              file=sys.stderr)
+
 class TTeslacrack(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         os.chdir(os.path.dirname(__file__))
-        for f in glob.glob('unreadable*'):
-            os.chmod(f, stat.S_IWRITE)
+        ## Mark unreadable-files.
+        chmod('115', glob.glob('unreadable*'))
 
-    min_scanned_files = 20
+
+    @classmethod
+    def tearDownClass(cls):
+        os.chdir(os.path.dirname(__file__))
+        ## UNMark unreadable-files.
+        chmod('775', glob.glob('unreadable*'))
+
+
+    min_scanned_files = 18
 
     def setUp(self):
         """
@@ -113,110 +143,132 @@ class TTeslacrack(unittest.TestCase):
         exp_stats = argparse.Namespace(
                 badexisting_nfiles=1,
                 badheader_nfiles=1,
-                crypted_nfiles=12,
-                decrypted_nfiles=7,
+                crypted_nfiles=11,
+                decrypted_nfiles=6,
                 deleted_nfiles=0,
-                failed_nfiles=1,
+                failed_nfiles=2,
                 ndirs=-1,
-                noaccess_ndirs=0,
+                noaccess_ndirs=1,
                 overwrite_nfiles=0,
                 scanned_nfiles=-1,
                 skip_nfiles=2,
                 tesla_nfiles=13,
                 unknown_nfiles=2,
-                visited_ndirs=10)
+                visited_ndirs=9)
+
         self.assertEquals(stats, exp_stats)
 
 
     def test_statistics_fix_dryrun(self):
-        opts = argparse.Namespace(delete=False, delete_old=False, dry_run=True,
-                fix=True, fpaths=['.'], overwrite=False, progress=False,
+        opts = argparse.Namespace(delete=False, delete_old=False, dry_run=False,
+                fix=False, fpaths=['.'], overwrite=False, progress=False,
                 verbose=True)
+        teslacrack.teslacrack(opts)
+        opts.dry_run=True
+        opts.fix=True
         stats = teslacrack.teslacrack(opts)
         self.assertGreater(stats.scanned_nfiles, self.min_scanned_files)
         stats.scanned_nfiles = -1 ## arbitrary
         #print(stats)
-        exp_stats = argparse.Namespace(
-                badexisting_nfiles=1,
+        exp_stats = argparse.Namespace(badexisting_nfiles=1,
                 badheader_nfiles=1,
-                crypted_nfiles=12,
-                decrypted_nfiles=8,
+                crypted_nfiles=11,
+                decrypted_nfiles=1,
                 deleted_nfiles=0,
-                failed_nfiles=1,
+                failed_nfiles=2,
                 ndirs=-1,
-                noaccess_ndirs=0,
+                noaccess_ndirs=1,
                 overwrite_nfiles=1,
                 scanned_nfiles=-1,
-                skip_nfiles=1,
+                skip_nfiles=7,
                 tesla_nfiles=13,
                 unknown_nfiles=2,
-                visited_ndirs=10)
+                visited_ndirs=9)
         self.assertEquals(stats, exp_stats)
 
 
     def test_statistics_overwrite_dryrun(self):
-        opts = argparse.Namespace(delete=False, delete_old=False, dry_run=True,
-                fix=False, fpaths=['.'], overwrite=True, progress=False,
+        opts = argparse.Namespace(delete=False, delete_old=False, dry_run=False,
+                fix=False, fpaths=['.'], overwrite=False, progress=False,
                 verbose=True)
+        teslacrack.teslacrack(opts)
+        opts.dry_run=True
+        opts.overwrite=True
         stats = teslacrack.teslacrack(opts)
         self.assertGreater(stats.scanned_nfiles, self.min_scanned_files)
         stats.scanned_nfiles = -1 ## arbitrary
-        #print(stats)
-        exp_stats = argparse.Namespace(
-                badexisting_nfiles=0, badheader_nfiles=1, crypted_nfiles=12, decrypted_nfiles=9, deleted_nfiles=0, failed_nfiles=1, ndirs=-1, noaccess_ndirs=0, overwrite_nfiles=2, scanned_nfiles=-1, skip_nfiles=0, tesla_nfiles=13, unknown_nfiles=2, visited_ndirs=10)
+        print(stats)
+        exp_stats = argparse.Namespace(badexisting_nfiles=0,
+                    badheader_nfiles=1,
+                    crypted_nfiles=11,
+                    decrypted_nfiles=8,
+                    deleted_nfiles=0,
+                    failed_nfiles=2,
+                    ndirs=-1,
+                    noaccess_ndirs=1,
+                    overwrite_nfiles=8,
+                    scanned_nfiles=-1,
+                    skip_nfiles=0,
+                    tesla_nfiles=13,
+                    unknown_nfiles=2,
+                    visited_ndirs=9)
         self.assertEquals(stats, exp_stats)
 
 
     def test_statistics_delete_dryrun(self):
-        opts = argparse.Namespace(delete=False, delete_old=False, dry_run=True,
-                fix=False, fpaths=['.'], overwrite=True, progress=False,
+        opts = argparse.Namespace(delete=False, delete_old=False, dry_run=False,
+                fix=False, fpaths=['.'], overwrite=False, progress=False,
                 verbose=True)
+        teslacrack.teslacrack(opts)
+        opts.dry_run=True
+        opts.delete=True
         stats = teslacrack.teslacrack(opts)
         self.assertGreater(stats.scanned_nfiles, self.min_scanned_files)
         self.assertGreater(stats.scanned_nfiles, self.min_scanned_files)
         stats.scanned_nfiles = -1 ## arbitrary
         #print(stats)
-        exp_stats = argparse.Namespace(
-                badexisting_nfiles=0,
+        exp_stats = argparse.Namespace(badexisting_nfiles=1,
                 badheader_nfiles=1,
-                crypted_nfiles=12,
-                decrypted_nfiles=9,
+                crypted_nfiles=11,
+                decrypted_nfiles=0,
                 deleted_nfiles=0,
-                failed_nfiles=1,
+                failed_nfiles=2,
                 ndirs=-1,
-                noaccess_ndirs=0,
-                overwrite_nfiles=2,
+                noaccess_ndirs=1,
+                overwrite_nfiles=0,
                 scanned_nfiles=-1,
-                skip_nfiles=0,
+                skip_nfiles=8,
                 tesla_nfiles=13,
                 unknown_nfiles=2,
-                visited_ndirs=10)
+                visited_ndirs=9)
         self.assertEquals(stats, exp_stats)
 
 
-    def test_statistics_deleteOld_dryrun(self):
-        opts = argparse.Namespace(delete=False, delete_old=False, dry_run=True,
-                fix=False, fpaths=['.'], overwrite=True, progress=False,
+    def test_statistics_delete_old_dryrun(self):
+        opts = argparse.Namespace(delete=False, delete_old=False, dry_run=False,
+                fix=False, fpaths=['.'], overwrite=False, progress=False,
                 verbose=True)
+        teslacrack.teslacrack(opts)
+        opts.dry_run=True
+        opts.delete_old=True
         stats = teslacrack.teslacrack(opts)
         self.assertGreater(stats.scanned_nfiles, self.min_scanned_files)
         stats.scanned_nfiles = -1 ## arbitrary
         #print(stats)
-        exp_stats = argparse.Namespace(
-                badexisting_nfiles=0,
-                badheader_nfiles=1,
-                crypted_nfiles=12,
-                decrypted_nfiles=9,
-                deleted_nfiles=0,
-                failed_nfiles=1,
-                ndirs=-1,
-                noaccess_ndirs=0,
-                overwrite_nfiles=2,
-                scanned_nfiles=-1,
-                skip_nfiles=0,
-                tesla_nfiles=13,
-                unknown_nfiles=2,
-                visited_ndirs=10)
+        exp_stats = argparse.Namespace(badexisting_nfiles=1,
+                    badheader_nfiles=1,
+                    crypted_nfiles=11,
+                    decrypted_nfiles=0,
+                    deleted_nfiles=8,
+                    failed_nfiles=2,
+                    ndirs=-1,
+                    noaccess_ndirs=1,
+                    overwrite_nfiles=0,
+                    scanned_nfiles=-1,
+                    skip_nfiles=8,
+                    tesla_nfiles=13,
+                    unknown_nfiles=2,
+                    visited_ndirs=9)
         self.assertEquals(stats, exp_stats)
 
 
