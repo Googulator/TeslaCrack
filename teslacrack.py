@@ -358,14 +358,7 @@ def _parse_args(args):
     return ap.parse_args(args)
 
 
-def main(args):
-    opts = _parse_args(args)
-
-    log_level = logging.DEBUG if opts.verbose else logging.INFO
-    frmt = "%(asctime)-15s:%(levelname)3.3s: %(message)s"
-    logging.basicConfig(level=log_level, format=frmt)
-    log.debug('Options: %s', opts)
-
+def teslacrack(opts):
     opts.fpaths = [_path_to_ulong(f) for f in opts.fpaths]
 
     stats = argparse.Namespace(ndirs = -1,
@@ -381,5 +374,18 @@ def main(args):
     log_unknown_keys()
     log_stats(stats)
 
+
+def main(*args):
+    """Parse args, setup logging and delegate to :func:`teslacrack()`."""
+    if not args:
+        args = sys.argv
+    opts = _parse_args(args[1:])
+
+    log_level = logging.DEBUG if opts.verbose else logging.INFO
+    frmt = "%(asctime)-15s:%(levelname)3.3s: %(message)s"
+    logging.basicConfig(level=log_level, format=frmt)
+    log.debug('Options: %s', opts)
+    teslacrack(opts)
+
 if __name__=='__main__':
-    main(sys.argv[1:])
+    main()
