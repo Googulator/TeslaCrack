@@ -7,6 +7,7 @@ to make files/dirs inaccessible, needed for TCs.
 from __future__ import print_function
 
 import argparse
+import binascii
 import glob
 import os
 import sys
@@ -17,6 +18,7 @@ import ddt
 import yaml
 
 import teslacrack
+from unfactor import CrackException
 import unfactor
 
 
@@ -25,7 +27,7 @@ keys:
     - name     : ankostis
       type     : AES
       encrypted: 7097DDB2E5DD08950D18C263A41FF5700E7F2A01874B20F402680752268E43F4C5B7B26AF2642AE37BD64AB65B6426711A9DC44EA47FC220814E88009C90EA
-      decrypted: \x01\x7b\x16\x47\xd4\x24\x2b\xc6\x7c\xe8\xa6\xaa\xec\x4d\x8b\x49\x3f\x35\x51\x9b\xd8\x27\x75\x62\x3d\x86\x18\x21\x67\x14\x8d\xd9
+      decrypted: 017b1647d4242bc67ce8a6aaec4d8b493f35519bd82775623d86182167148dd9
       factors  :
         - 2
         - 7
@@ -45,7 +47,7 @@ keys:
     - name     : hermanndp
       type     : AES
       encrypted: 07E18921C536C112A14966D4EAAD01F10537F77984ADAAE398048F12685E2870CD1968FE3317319693DA16FFECF6A78EDBC325DDA2EE78A3F9DF8EEFD40299D9
-      decrypted: \x1b\x5c\x52\xaa\xfc\xff\xda\x2e\x71\x00\x1c\xf1\x88\x0f\xe4\x5c\xb9\x3d\xea\x4c\x71\x32\x8d\xf5\x95\xcb\x5e\xb8\x82\xa3\x97\x9f'
+      decrypted: 1b5c52aafcffda2e71001cf1880fe45cb93dea4c71328df595cb5eb882a3979f
       factors  :
         - 13
         - 3631
@@ -58,15 +60,19 @@ keys:
         - tesla_key3.doc.vvv
         - tesla_key3.pdf.zzz
 
-"""
+    - name     : unknown1
+      type     : AES
+      encrypted: 5942f9a9aff
+      factors  : [13, 3631, 129949621, 999999]
+      error    : Extra factors given
 
-# def config_yaml():
-#     """From http://stackoverflow.com/a/21048064/548792"""
-#     yaml.add_representer(OrderedDict, lambda dumper, data:
-#             dumper.represent_dict(data.items()))
-#     yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-#             lambda loader, node: OrderedDict(loader.construct_pairs(node)))
-# config_yaml()
+    - name     : unknown2
+      type     : AES
+      encrypted: 5942f9a9aff
+      factors  : [3631, 129949621]
+      error    : Failed reconstructing AES-key!
+      warning  : Incomplete factorization  ## UNUSED
+"""
 
 def read_app_db():
     return yaml.load(textwrap.dedent(app_db_txt))
@@ -81,14 +87,30 @@ class TUnfactor(unittest.TestCase):
         os.chdir(os.path.dirname(__file__))
 
     @ddt.data(*[k for k in app_db['keys'] if k['type'] == 'AES'])
-    def test_undecrypt_AES_keys(self, key_rec):
+    def test_unfactor_from_file(self, key_rec):
         for f in key_rec.get('crypted_files', ()):
+            exp_aes_key = key_rec.get('decrypted')
+            if not exp_aes_key:
+                continue
             factors = [int(fc) for fc in key_rec['factors']]
-            exp_aes_key = key_rec['decrypted']
-            aes_key = unfactor.undecrypt(f, factors)
+            aes_keys = unfactor.unfactor_key_from_file(f, factors)
             #print(key_rec['name'], f, aes_key, exp_aes_key)
-            self.assertIn(exp_aes_key, aes_key,
-                    (key_rec['name'], f, aes_key, exp_aes_key))
+            self.assertIn(exp_aes_key, aes_keys,
+                    (key_rec['name'], f, aes_keys, exp_aes_key))
+
+    @ddt.data(*[k for k in app_db['keys'] if k['type'] == 'AES'])
+    def test_unfactor_key_failures(self, key_rec):
+        name = key_rec['name']
+        factors = [int(fc) for fc in key_rec['factors']]
+        exp_aes_key = key_rec.get('decrypted')
+        if not exp_aes_key:
+            with self.assertRaises(CrackException, msg=key_rec) as cm:
+                crypted_aes_key = int(key_rec['encrypted'], 16)
+                unfactor.unfactor_key('<fpath>', factors, crypted_aes_key,
+                        lambda *args: b'')
+            err_msg = cm.exception.args[0]
+            self.assertIn(key_rec['error'], err_msg, key_rec)
+
 
 def chmod(mode, files):
     files = ' '.join("'%s'" % f for f in files)
@@ -197,7 +219,7 @@ class TTeslacrack(unittest.TestCase):
         stats = teslacrack.teslacrack(opts)
         self.assertGreater(stats.scanned_nfiles, self.min_scanned_files)
         stats.scanned_nfiles = -1 ## arbitrary
-        print(stats)
+        #print(stats)
         exp_stats = argparse.Namespace(badexisting_nfiles=0,
                     badheader_nfiles=1,
                     crypted_nfiles=11,
