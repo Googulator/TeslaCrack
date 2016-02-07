@@ -34,14 +34,14 @@ class CrackException(Exception):
     pass
 
 
-def rpad_key(key):
+def lalign_key(key):
     while key[0] == b'\0':
         key = key[1:] + b'\0'
     return key
 
 
 def fix_int_key(int_key):
-    return rpad_key(binascii.unhexlify('%064x' % int_key))
+    return lalign_key(binascii.unhexlify('%064x' % int_key))
 
 
 def is_known_file(fname, fbytes):

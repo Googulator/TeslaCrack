@@ -94,7 +94,7 @@ class TUnfactor(unittest.TestCase):
                 continue
             factors = [int(fc) for fc in key_rec['factors']]
             aes_keys = unfactor.unfactor_key_from_file(f, factors)
-            #print(key_rec['name'], f, aes_key, exp_aes_key)
+            #print(key_rec['name'], f, aes_keys, exp_aes_key)
             self.assertIn(exp_aes_key, aes_keys,
                     (key_rec['name'], f, aes_keys, exp_aes_key))
 

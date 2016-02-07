@@ -63,7 +63,7 @@ A 32-bit Python can also work, but it will be significantly slower
 
 Install Python
 --------------
-In *Windows*, the following 2 alternatives have been tested:
+In *Windows*, the following 1 + 2 alternative have been tested:
 
 - The `"official" distributions <https://www.python.org>`_, which **require
   admin-rights to install and to ``pip``-install the necessary packages.**
@@ -126,13 +126,13 @@ containing ``unfactor.py`` and ``teslacrack.py`` files.
        a new mapping into ``known_file_magics`` dictionary.  Note that
        in *python-3*, bytes are given like that: ``b'\xff\xd8'``.
 
-2. If the extension of your crypted files is not one of
-   ``.vvv, .ccc,  .zzz, .aaa, .abc``, edit ``teslacrack.py`` to append it
+2. If the your crypted files do not have one of the known extensions,
+   ``.vvv, .ccc, .zzz, .aaa, .abc``, edit ``teslacrack.py`` to append it
    into ``tesla_extensions`` string-list.
 
    .. Note::
         The extensions '.xxx', '.micro' and '.ttt' have been reported for a new
-        variant of TeslaCrypt (3.0).
+        variant of TeslaCrypt (3.0), and this tool cannot decrypt them, anyway.
 
 
 3. Enter this command in your working folder to process your crypted file
@@ -174,10 +174,7 @@ containing ``unfactor.py`` and ``teslacrack.py`` files.
 
    It will reconstruct and print any decrypted AES-keys candidates (usually just one).
 
-   - Sometimes, ``unfactor.py`` will print the same candidate multiple times.
-     This is a known bug, please disregard it.
-
-   - Alternatively, you can use ``unfactor_ecdsa.py`` to get your keys - this is slower,
+   - You may use ``unfactor_ecdsa.py`` to recover your keys - this is slower,
      and requires the *ecdsa* Python module to be installed; however,
      unlike ``unfactor.py``, it can also reconstruct Bitcoin private-keys
      (to be used with TeslaDecoder), not just AES ones. Also, ``unfactor_ecdsa.py``
@@ -209,7 +206,7 @@ containing ``unfactor.py`` and ``teslacrack.py`` files.
       <encrypted-AES-key>: <1st decrypted-AES-key candidate>,
 
 8. Repeat step 3. A decrypted file should now appear next to the crypted one
-   (``.vvv``, ``.ccc``, etc) - verify that the contents of the decrypted-file
+   (``.vvv`` or ``.ccc``, etc) - verify that the contents of the decrypted-file
    do make sense.
 
    - If not, redo step 7, replacing every time a new candidate decrypted AES-key
@@ -240,7 +237,7 @@ containing ``unfactor.py`` and ``teslacrack.py`` files.
      re-generate all cleartext files or just those that had previously failed to
      decrypt, respectively.  They both accept an optional *file-extension*
      to construct the backup filename.
-     Note that by default ``--overwrite`` does not make backups, while
+     Note that by default ``--overwrite`` does not make backups, while the
      ``-fix`` option, does.
 
    - If you are going to decrypt 1000s of file (i.e ``D:\\``), it's worth

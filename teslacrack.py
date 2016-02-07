@@ -104,13 +104,13 @@ _last_progress_time = 0#time.time()
 _PY2 = sys.version_info[0] == 2
 
 
-def rpad_key(key):
+def lalign_key(key):
     while key[0] == b'\0':
         key = key[1:] + b'\0'
     return key
 
 def fix_hex_key(hex_key):
-    return rpad_key(binascii.unhexlify(hex_key))
+    return lalign_key(binascii.unhexlify(hex_key))
 
 def _decide_backup_ext(ext):
     """Strange logic here, see :func:`_argparse_ext_type()`."""
