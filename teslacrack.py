@@ -128,7 +128,7 @@ def _needs_decrypt(fname, exp_size, fix, overwrite, stats):
         disk_size = os.stat(fname).st_size
         if disk_size != exp_size:
             log.warn("Bad(?) decrypted-file %r had unexpected size(disk_size(%i) != %i)! "
-                    "\n  Will be overwritten? %s",
+                    "\n  Will be overwritten: %s",
                     fname, disk_size, exp_size, bool(fix))
             stats.badexisting_nfiles += 1
             should_decrypt = fix

@@ -1,5 +1,5 @@
 """
-TestCases for teslacrypt.
+TestCases for teslacrack.
 
 It needs a `bash` (cygwin or git-for-windows) because that was an easy way
 to make files/dirs inaccessible, needed for TCs.
@@ -7,7 +7,6 @@ to make files/dirs inaccessible, needed for TCs.
 from __future__ import print_function, unicode_literals
 
 import argparse
-import binascii
 import glob
 import os
 import sys
@@ -20,6 +19,7 @@ import yaml
 import teslacrack
 from unfactor import CrackException
 import unfactor
+import unfactor_bitcoin
 
 
 app_db_txt = r"""
@@ -59,6 +59,28 @@ keys:
       crypted_files:
         - tesla_key3.doc.vvv
         - tesla_key3.pdf.zzz
+
+    - name     : gh-14
+      type     : BTC
+      encrypted: 372AE820BBF2C3475E18F165F46772087EFFC7D378A3A4D10789AE7633EC09C74578993A2A7104EBA577D229F935AF77C647F18E113647C25EF19CC7E4EE3C4C
+      decrypted: 38F47CB4BB4B0E2DA4AF771D618E9575520781F17E5785480F51B7955216D71F
+      btc_addr : 1GSswEGHysnASUwNEKNjWXCW9vRCy57qA4
+      factors  :
+        - 2
+        - 2
+        - 3
+        - 7
+        - 11
+        - 17
+        - 19
+        - 139
+        - 2311
+        - 14278309
+        - 465056119273
+        - 250220277466967
+        - 373463829010805159059
+        - 1261349708817837740609
+        - 38505609642285116603442307097561327764453851349351841755789120180499
 
     - name     : unknown1
       type     : AES
@@ -112,6 +134,23 @@ class TUnfactor(unittest.TestCase):
             self.assertIn(key_rec['error'], err_msg, key_rec)
 
 
+@ddt.ddt
+class TUnfactorBtc(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        os.chdir(os.path.dirname(__file__))
+
+    @ddt.data(*[k for k in app_db['keys'] if k['type'] == 'BTC'])
+    def test_unfactor_btc(self, key_rec):
+        dec_key = key_rec.get('decrypted')
+        btc_addr = key_rec.get('btc_addr')
+        if btc_addr:
+            factors = [int(fc) for fc in key_rec['factors']]
+            dec_key = unfactor_bitcoin.main(btc_addr, *factors)
+            #print(key_rec['name'], btc_addr, dec_key)
+            self.assertIn(dec_key, dec_key, key_rec)
+
+
 def chmod(mode, files):
     files = ' '.join("'%s'" % f for f in files)
     cmd = 'bash -c "chmod %s %s"' % (mode, files)
@@ -137,7 +176,7 @@ class TTeslacrack(unittest.TestCase):
         chmod('775', glob.glob('unreadable*'))
 
 
-    min_scanned_files = 18
+    min_scanned_files = 16
 
     def setUp(self):
         """

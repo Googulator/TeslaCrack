@@ -114,7 +114,6 @@ def unfactor_key_from_file(fpath, primes):
 
 
 def main(*args):
-    """Parse args, setup logging and delegate to :func:`teslacrack()`."""
     if not args:
         args = sys.argv
 
