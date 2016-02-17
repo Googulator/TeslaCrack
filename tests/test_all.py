@@ -20,6 +20,7 @@ import teslacrack
 from unfactor import CrackException
 import unfactor
 import unfactor_bitcoin
+import unfactor_ecdsa
 
 
 app_db_txt = r"""
@@ -81,6 +82,8 @@ keys:
         - 373463829010805159059
         - 1261349708817837740609
         - 38505609642285116603442307097561327764453851349351841755789120180499
+      crypted_files:
+        - tesla_key14.jpg.vvv
 
     - name     : unknown1
       type     : AES
@@ -135,6 +138,21 @@ class TUnfactor(unittest.TestCase):
 
 
 @ddt.ddt
+class TUnfactorEcdsa(unittest.TestCase):
+    @ddt.data(*[k for k in app_db['keys'] if k['type'] == 'BTC'])
+    def test_unfactor_ecdsa_btc_from_file(self, key_rec):
+        for f in key_rec.get('crypted_files', ()):
+            exp_aes_key = key_rec.get('decrypted')
+            if not exp_aes_key:
+                continue
+            factors = [int(fc) for fc in key_rec['factors']]
+            aes_keys = unfactor_ecdsa.main(f, factors)
+            #print(key_rec['name'], f, aes_keys, exp_aes_key)
+            self.assertIn(exp_aes_key, aes_keys,
+                    (key_rec['name'], f, aes_keys, exp_aes_key))
+
+
+@ddt.ddt
 class TUnfactorBtc(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -160,6 +178,7 @@ def chmod(mode, files):
               "\n  TCs below may also fail, unless you mark manually `unreadable*` files!"
               % ret,
               file=sys.stderr)
+
 
 class TTeslacrack(unittest.TestCase):
     @classmethod
