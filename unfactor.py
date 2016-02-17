@@ -113,28 +113,22 @@ def unfactor_key_from_file(fpath, primes):
 
 
 
-def main(*args):
-    if not args:
-        args = sys.argv
-
+def main(file, *primes):
     log_level = logging.INFO
     frmt = "%(asctime)-15s:%(levelname)3.3s: %(message)s"
     logging.basicConfig(level=log_level, format=frmt)
-    log.debug('Args: %s', args)
+    log.debug('Args: %s, %s', file, primes)
 
-    file = sys.argv[1]
-    primes = [int(p) for p in sys.argv[2:]]
-    log.info('Primes: \n  %s' % '\n  '.join(str(p) for p in primes))
-
+    primes = [int(p) for p in primes]
     candidate_keys = unfactor_key_from_file(file, primes)
     print("Candidate AES private key: \n  %s" % '\n  '.join(candidate_keys))
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("usage: unfactor.py <sample file> <space-separated list of factors>")
-        exit()
+        exit("usage: unfactor.py <sample file> <space-separated list of factors>")
     try:
-        print(main())
+        print(main(*sys.argv[1:]))
     except CrackException as ex:
         log.error("Reconstruction failed! %s", ex)
+        exit(-2)

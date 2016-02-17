@@ -146,7 +146,7 @@ class TUnfactorEcdsa(unittest.TestCase):
             if not exp_aes_key:
                 continue
             factors = [int(fc) for fc in key_rec['factors']]
-            aes_keys = unfactor_ecdsa.main(f, factors)
+            aes_keys = unfactor_ecdsa.main(f, *factors)
             #print(key_rec['name'], f, aes_keys, exp_aes_key)
             self.assertIn(exp_aes_key, aes_keys,
                     (key_rec['name'], f, aes_keys, exp_aes_key))
