@@ -204,7 +204,7 @@ class TTeslacrack(unittest.TestCase):
         exp_stats = argparse.Namespace(
                 badexisting_nfiles=1,
                 badheader_nfiles=1,
-                crypted_nfiles=11,
+                crypted_nfiles=12,
                 decrypted_nfiles=6,
                 deleted_nfiles=0,
                 failed_nfiles=2,
@@ -213,8 +213,8 @@ class TTeslacrack(unittest.TestCase):
                 overwrite_nfiles=0,
                 scanned_nfiles=-1,
                 skip_nfiles=2,
-                tesla_nfiles=13,
-                unknown_nfiles=2,
+                tesla_nfiles=14,
+                unknown_nfiles=3,
                 visited_ndirs=9)
 
         self.assertEquals(stats, exp_stats)
@@ -233,7 +233,7 @@ class TTeslacrack(unittest.TestCase):
         #print(stats)
         exp_stats = argparse.Namespace(badexisting_nfiles=1,
                 badheader_nfiles=1,
-                crypted_nfiles=11,
+                crypted_nfiles=12,
                 decrypted_nfiles=1,
                 deleted_nfiles=0,
                 failed_nfiles=2,
@@ -242,8 +242,8 @@ class TTeslacrack(unittest.TestCase):
                 overwrite_nfiles=1,
                 scanned_nfiles=-1,
                 skip_nfiles=7,
-                tesla_nfiles=13,
-                unknown_nfiles=2,
+                tesla_nfiles=14,
+                unknown_nfiles=3,
                 visited_ndirs=9)
         self.assertEquals(stats, exp_stats)
 
@@ -261,7 +261,7 @@ class TTeslacrack(unittest.TestCase):
         #print(stats)
         exp_stats = argparse.Namespace(badexisting_nfiles=0,
                     badheader_nfiles=1,
-                    crypted_nfiles=11,
+                    crypted_nfiles=12,
                     decrypted_nfiles=8,
                     deleted_nfiles=0,
                     failed_nfiles=2,
@@ -270,8 +270,8 @@ class TTeslacrack(unittest.TestCase):
                     overwrite_nfiles=8,
                     scanned_nfiles=-1,
                     skip_nfiles=0,
-                    tesla_nfiles=13,
-                    unknown_nfiles=2,
+                    tesla_nfiles=14,
+                    unknown_nfiles=3,
                     visited_ndirs=9)
         self.assertEquals(stats, exp_stats)
 
@@ -290,7 +290,7 @@ class TTeslacrack(unittest.TestCase):
         #print(stats)
         exp_stats = argparse.Namespace(badexisting_nfiles=1,
                 badheader_nfiles=1,
-                crypted_nfiles=11,
+                crypted_nfiles=12,
                 decrypted_nfiles=0,
                 deleted_nfiles=0,
                 failed_nfiles=2,
@@ -299,8 +299,8 @@ class TTeslacrack(unittest.TestCase):
                 overwrite_nfiles=0,
                 scanned_nfiles=-1,
                 skip_nfiles=8,
-                tesla_nfiles=13,
-                unknown_nfiles=2,
+                tesla_nfiles=14,
+                unknown_nfiles=3,
                 visited_ndirs=9)
         self.assertEquals(stats, exp_stats)
 
@@ -318,7 +318,7 @@ class TTeslacrack(unittest.TestCase):
         #print(stats)
         exp_stats = argparse.Namespace(badexisting_nfiles=1,
                     badheader_nfiles=1,
-                    crypted_nfiles=11,
+                    crypted_nfiles=12,
                     decrypted_nfiles=0,
                     deleted_nfiles=8,
                     failed_nfiles=2,
@@ -327,8 +327,8 @@ class TTeslacrack(unittest.TestCase):
                     overwrite_nfiles=0,
                     scanned_nfiles=-1,
                     skip_nfiles=8,
-                    tesla_nfiles=13,
-                    unknown_nfiles=2,
+                    tesla_nfiles=14,
+                    unknown_nfiles=3,
                     visited_ndirs=9)
         self.assertEquals(stats, exp_stats)
 
