@@ -81,7 +81,7 @@ In *Windows*, the following 1 + 2 alternative have been tested:
   you most probably **need admin-rights** when running `teslacrack.py`,
   if the files to decrypt originate from a different user.
 
-Install TeslaCrypt
+Install TeslaCrack
 ------------------
 1. At a command-prompt with python enabled (and with admin-rights in the "official" distribution),
    execute the following commands::
