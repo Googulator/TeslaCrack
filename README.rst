@@ -63,7 +63,7 @@ A 32-bit Python can also work, but it will be significantly slower
 
 Install Python
 --------------
-In *Windows*, the following 2 alternatives have been tested:
+In *Windows*, the following 1 + 2 alternative have been tested:
 
 - The `"official" distributions <https://www.python.org>`_, which **require
   admin-rights to install and to ``pip``-install the necessary packages.**
@@ -81,7 +81,7 @@ In *Windows*, the following 2 alternatives have been tested:
   you most probably **need admin-rights** when running `teslacrack.py`,
   if the files to decrypt originate from a different user.
 
-Install TeslaCrypt
+Install TeslaCrack
 ------------------
 1. At a command-prompt with python enabled (and with admin-rights in the "official" distribution),
    execute the following commands::
@@ -108,34 +108,37 @@ Install TeslaCrypt
 
 How to decrypt your files
 =========================
+Note that commands below assume that your *working folder* is the one
+containing ``unfactor.py`` and ``teslacrack.py`` files.
+
 
 1. Collect a "crypted" file from the attacked machine in your *working folder*.
-   Choose a file with a known initial magic number - ``unfactor.py`` is pre-configured
-   for working with PDF files; change the magic number in ``unfactor.py`` from '%PDF'
-   to the correct value if you did not selected a PDF:
+   Choose a file with known magic-bytes - ``unfactor.py`` has been pre-configured
+   with some common data-formats to choose from:
 
-        - PK                --> .zip, .ODF, OOXML (.docx/xlsx) files;
-        - \xff\xd8          --> JPEGs;
-        - \xd0\xcf\x11\xe0  --> MS Office .doc files
+   - *pdf* & *word-doc* files,
+   - images and sounds (*jpg, png, gif, mp3*), and
+   - archive formats: *gzip, bz2, 7z, rar* and of course *zip*, which includes
+     all LibreOffice and newer Microsoft *docs/xlsx* & *ODF* documents.
 
-   (in *python-3* bytes are given like that: ``b'\xff\xd8'``).
+   .. Tip::
+       To view or extend the supported formats, edit ``unfactor.py`` and append
+       a new mapping into ``known_file_magics`` dictionary.  Note that
+       in *python-3*, bytes are given like that: ``b'\xff\xd8'``.
 
-   Note that commands below assume that your *working folder* is the one
-   containing ``unfactor.py`` and ``teslacrack.py`` files.
-
-2. If the extension of your crypted files is not one of
-   ``.vvv, .ccc,  .zzz, .aaa, .abc``, edit ``teslacrack.py`` to append it
+2. If the your crypted files do not have one of the known extensions,
+   ``.vvv, .ccc, .zzz, .aaa, .abc``, edit ``teslacrack.py`` to append it
    into ``tesla_extensions`` string-list.
 
    .. Note::
         The extensions '.xxx', '.micro' and '.ttt' have been reported for a new
-        variant of TeslaCrypt (3.0).
+        variant of TeslaCrypt (3.0), and this tool cannot decrypt them, anyway.
 
 
 3. Enter this command in your working folder to process your crypted file
    (notice the ``.`` at the end,; you may use the name of your crypted file instead)::
 
-       python -v teslacrack.py .
+       python teslacrack.py -v .
 
    It will print out two hex numbers.  **The first number is your encrypted-AES-key**.
 
@@ -171,10 +174,7 @@ How to decrypt your files
 
    It will reconstruct and print any decrypted AES-keys candidates (usually just one).
 
-   - Sometimes, ``unfactor.py`` will print the same candidate multiple times.
-     This is a known bug, please disregard it.
-
-   - Alternatively, you can use ``unfactor_ecdsa.py`` to get your keys - this is slower,
+   - You may use ``unfactor_ecdsa.py`` to recover your keys - this is slower,
      and requires the *ecdsa* Python module to be installed; however,
      unlike ``unfactor.py``, it can also reconstruct Bitcoin private-keys
      (to be used with TeslaDecoder), not just AES ones. Also, ``unfactor_ecdsa.py``
@@ -195,13 +195,18 @@ How to decrypt your files
      Note that ``teslacrack.py`` can't decode the file format used by old TeslaCrypt,
      so you will need to perform the actual decryption using *TeslaDecoder*.
 
+   - Archives, such as *zip* files and *docx/xlsx/odf* documents may
+     fail to produce a key, when irrelevant bytes have been prepended - this is
+     allowed by their format.  Repeate this step with another type of file.
+
+
 7. Edit ``teslacrack.py`` to add a new key-pair into the ``known_AES_key_pairs``
    dictionary, like that::
 
       <encrypted-AES-key>: <1st decrypted-AES-key candidate>,
 
 8. Repeat step 3. A decrypted file should now appear next to the crypted one
-   (``.vvv``, ``.ccc``, etc) - verify that the contents of the decrypted-file
+   (``.vvv`` or ``.ccc``, etc) - verify that the contents of the decrypted-file
    do make sense.
 
    - If not, redo step 7, replacing every time a new candidate decrypted AES-key
@@ -232,7 +237,7 @@ How to decrypt your files
      re-generate all cleartext files or just those that had previously failed to
      decrypt, respectively.  They both accept an optional *file-extension*
      to construct the backup filename.
-     Note that by default ``--overwrite`` does not make backups, while
+     Note that by default ``--overwrite`` does not make backups, while the
      ``-fix`` option, does.
 
    - If you are going to decrypt 1000s of file (i.e ``D:\\``), it's worth

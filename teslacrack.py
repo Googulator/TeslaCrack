@@ -67,6 +67,7 @@ import sys
 import time
 
 from Crypto.Cipher import AES
+import binascii
 
 
 log = logging.getLogger('teslacrack')
@@ -75,22 +76,23 @@ log = logging.getLogger('teslacrack')
 #  like the examples below:
 #
 known_AES_key_pairs = {
-    b'D4E0010A8EDA7AAAE8462FFE9562B29871B9DA186D98B5B15EC9F77803B60EAB12ADDF78CBD4D9314A0C31270CC8822DCC071D10193D1E612360B26582DAF124': b'\xEA\x68\x5A\x3C\xDB\x78\x0D\xF2\x12\xEB\xAA\x50\x03\xAD\xC3\xE1\x04\x06\x3E\xBC\x25\x93\x52\xC5\x09\x88\xB7\x56\x1A\xD1\x34\xA5',
-    b'9F2874FB536C0A6EF7B296416A262A8A722A38C82EBD637DB3B11232AE0102153C18837EFB4558E9E2DBFC1BB4BE799AE624ED717A234AFC5E2F8E2668C76B6C': b'\xCD\x0D\x0D\x54\xC4\xFD\xB7\x64\x7C\x4D\xB0\x95\x6A\x30\x46\xC3\x4E\x38\x5B\x51\xD7\x35\xD1\x7C\x00\x9D\x47\x3E\x02\x84\x27\x95',
-    b'115DF08B0956AEDF0293EBA00CCD6793344D6590D234FE0DF2E679B7159E8DB05F960455F17CDDCE094420182484E73D4041C39531B5B8E753E562910561DE52': b'\x1A\xDC\x91\x33\x3E\x8F\x6B\x59\xBB\xCF\xB3\x34\x51\xD8\xA3\xA9\x4D\x14\xB3\x84\x15\xFA\x33\xC0\xF7\xFB\x69\x59\x20\xD3\x61\x8F',
-    b'7097DDB2E5DD08950D18C263A41FF5700E7F2A01874B20F402680752268E43F4C5B7B26AF2642AE37BD64AB65B6426711A9DC44EA47FC220814E88009C90EA': b'\x01\x7b\x16\x47\xd4\x24\x2b\xc6\x7c\xe8\xa6\xaa\xec\x4d\x8b\x49\x3f\x35\x51\x9b\xd8\x27\x75\x62\x3d\x86\x18\x21\x67\x14\x8d\xd9',
+    b'D4E0010A8EDA7AAAE8462FFE9562B29871B9DA186D98B5B15EC9F77803B60EAB12ADDF78CBD4D9314A0C31270CC8822DCC071D10193D1E612360B26582DAF124': 'ea685a3cdb780df212ebaa5003adc3e104063ebc259352c50988b7561ad134a5',
+    b'9F2874FB536C0A6EF7B296416A262A8A722A38C82EBD637DB3B11232AE0102153C18837EFB4558E9E2DBFC1BB4BE799AE624ED717A234AFC5E2F8E2668C76B6C': 'cd0d0d54c4fdb7647c4db0956a3046c34e385b51d735d17c009d473e02842795',
+    b'115DF08B0956AEDF0293EBA00CCD6793344D6590D234FE0DF2E679B7159E8DB05F960455F17CDDCE094420182484E73D4041C39531B5B8E753E562910561DE52': '1adc91333e8f6b59bbcfb33451d8a3a94d14b38415fa33c0f7fb695920d3618f',
+    b'7097DDB2E5DD08950D18C263A41FF5700E7F2A01874B20F402680752268E43F4C5B7B26AF2642AE37BD64AB65B6426711A9DC44EA47FC220814E88009C90EA': '017b1647d4242bc67ce8a6aaec4d8b493f35519bd82775623d86182167148dd9',
+    b'07E18921C536C112A14966D4EAAD01F10537F77984ADAAE398048F12685E2870CD1968FE3317319693DA16FFECF6A78EDBC325DDA2EE78A3F9DF8EEFD40299D9': '1b5c52aafcffda2e71001cf1880fe45cb93dea4c71328df595cb5eb882a3979f',
 }
 
 ## Add more known extensions, e.g. '.xyz'.
 #  Note that '.xxx', '.micro' and '.ttt' are crypted by a new variant
 #  of teslacrypt (3.0).
 tesla_extensions = ['.vvv', '.ccc',  '.zzz', '.aaa', '.abc']
+tesla_magics = [b'\xde\xad\xbe\xef\x04', b'\x00\x00\x00\x00\x04']
 
 ## If i18n-filenames are destroyed, experiment with this.
 #  e.g. 'UTF-8', 'iso-8859-9', 'CP437', 'CP1252'
 filenames_encoding = sys.getfilesystemencoding()
 
-known_file_magics = [b'\xde\xad\xbe\xef\x04', b'\x00\x00\x00\x00\x04']
 
 unknown_keys = {}
 unknown_btkeys = {}
@@ -102,11 +104,13 @@ _last_progress_time = 0#time.time()
 _PY2 = sys.version_info[0] == 2
 
 
-def fix_key(key):
+def lalign_key(key):
     while key[0] == b'\0':
         key = key[1:] + b'\0'
     return key
 
+def fix_hex_key(hex_key):
+    return lalign_key(binascii.unhexlify(hex_key))
 
 def _decide_backup_ext(ext):
     """Strange logic here, see :func:`_argparse_ext_type()`."""
@@ -123,8 +127,8 @@ def _needs_decrypt(fname, exp_size, fix, overwrite, stats):
     elif decrypted_exists:
         disk_size = os.stat(fname).st_size
         if disk_size != exp_size:
-            log.warn("Bad(?) crypted-file %r had unexpected size(disk_size(%i) != %i)! "
-                    "\n  Will be overwriten? %s",
+            log.warn("Bad(?) decrypted-file %r had unexpected size(disk_size(%i) != %i)! "
+                    "\n  Will be overwritten: %s",
                     fname, disk_size, exp_size, bool(fix))
             stats.badexisting_nfiles += 1
             should_decrypt = fix
@@ -141,21 +145,22 @@ def decrypt_file(opts, stats, crypted_fname):
         with open(crypted_fname, "rb") as fin:
             header = fin.read(414)
 
-            if header[:5] not in known_file_magics:
+            if header[:5] not in tesla_magics:
                 log.info("File %r doesn't appear to be TeslaCrypted.", crypted_fname)
                 stats.badheader_nfiles += 1
                 return
             stats.crypted_nfiles += 1
 
-            aes_encrypted_key = header[0x108:0x188].rstrip(b'\0')
-            aes_key = known_AES_key_pairs.get(aes_encrypted_key)
+            aes_crypted_key = header[0x108:0x188].rstrip(b'\0')
+            aes_key = known_AES_key_pairs.get(aes_crypted_key)
             if not aes_key:
-                if aes_encrypted_key not in unknown_keys:
-                    unknown_keys[aes_encrypted_key] = crypted_fname
+                if aes_crypted_key not in unknown_keys:
+                    unknown_keys[aes_crypted_key] = crypted_fname
                 btc_key = header[0x45:0xc5].rstrip(b'\0')
                 if btc_key not in unknown_btkeys:
                     unknown_btkeys[btc_key] = crypted_fname
-                log.warn("Unknown key in file: %s", crypted_fname)
+                log.warn("Unknown key: %s \n  in file: %s",
+                        aes_crypted_key, crypted_fname)
                 stats.unknown_nfiles += 1
                 return
 
@@ -173,7 +178,7 @@ def decrypt_file(opts, stats, crypted_fname):
                     backup_fname = decrypted_fname + backup_ext
                     opts.dry_run or shutil.move(decrypted_fname, backup_fname)
                 decryptor = AES.new(
-                        fix_key(aes_key),
+                        fix_hex_key(aes_key),
                         AES.MODE_CBC, header[0x18a:0x19a])
                 data = decryptor.decrypt(fin.read())[:size]
                 if not opts.dry_run:
@@ -226,7 +231,7 @@ def traverse_fpaths(opts, stats):
     def scan_file(fname):
         if os.path.splitext(fname)[1] in tesla_extensions:
             stats.tesla_nfiles += 1
-            decrypt_file(opts, stats, os.path.join(dirpath, f))
+            decrypt_file(opts, stats, fname)
 
     for fpath in opts.fpaths:
         if os.path.isfile(fpath):
@@ -297,9 +302,12 @@ def _path_to_ulong(path):
     """Support Long Unicode paths and handle `C: --> C:\<current-dir>` on *Windows*."""
     win_prefix = '\\\\?\\'
     if _PY2:
-        path = unicode(path, filenames_encoding)  # @UndefinedVariable
+        try:
+            path = unicode(path, filenames_encoding)  # @UndefinedVariable
+        except:
+            pass
     if os.name == 'nt' or sys.platform == 'cygwin':  ## But cygwin is missing cryptodome lib.
-        if path.endswith(':'):
+        if path.endswith(':'): ## Avoid Windows's per-drive "remembered" cwd.
             path += '\\'
         if not path.startswith(win_prefix):
             path = win_prefix + os.path.abspath(path)
@@ -357,14 +365,7 @@ def _parse_args(args):
     return ap.parse_args(args)
 
 
-def main(args):
-    opts = _parse_args(args)
-
-    log_level = logging.DEBUG if opts.verbose else logging.INFO
-    frmt = "%(asctime)-15s:%(levelname)3.3s: %(message)s"
-    logging.basicConfig(level=log_level, format=frmt)
-    log.debug('Options: %s', opts)
-
+def teslacrack(opts):
     opts.fpaths = [_path_to_ulong(f) for f in opts.fpaths]
 
     stats = argparse.Namespace(ndirs = -1,
@@ -380,5 +381,19 @@ def main(args):
     log_unknown_keys()
     log_stats(stats)
 
+    return stats
+
+def main(*args):
+    """Parse args, setup logging and delegate to :func:`teslacrack()`."""
+    if not args:
+        args = sys.argv
+    opts = _parse_args(args[1:])
+
+    log_level = logging.DEBUG if opts.verbose else logging.INFO
+    frmt = "%(asctime)-15s:%(levelname)3.3s: %(message)s"
+    logging.basicConfig(level=log_level, format=frmt)
+    log.debug('Options: %s', opts)
+    teslacrack(opts)
+
 if __name__=='__main__':
-    main(sys.argv[1:])
+    main()
