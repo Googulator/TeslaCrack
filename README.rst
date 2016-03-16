@@ -269,6 +269,6 @@ The same day this happened, Kaspersky released this article: https://blog.kasper
     :class: badge-flattr
 .. |btc-donate| image:: https://img.shields.io/badge/bitcoin-donate-yellow.svg
     :alt: Donate once-off to this project using Bitcoin
-    :target: bitcoin:1AdcYneBgky3yMP7d2snQ5wznbWKzULezj
+    :target: https://blockchain.info/address/1AdcYneBgky3yMP7d2snQ5wznbWKzULezj
     :class: badge-bitcoin
 .. |pypi-ver| image:: https://img.shields.io/badge/python-2.7%2B%2C%203.4%2B-blue.svg
