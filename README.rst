@@ -93,8 +93,7 @@ Install TeslaCrack
    - If you get an error like ``'pip' is not recognized as an internal or external command ...``
      then you may execute the following Python-2 code and re-run the commands above::
 
-         python -c "import urllib2; print urllib2.urlopen('https://bootstrap.pypa.io/ez_setup.py').read()" | python
-         easy_install pip
+         python -c "import urllib2; print urllib2.urlopen('https://bootstrap.pypa.io/get-pip.py').read()" | python
 
 
 2. In addition, you need a program for factoring large numbers.
@@ -131,8 +130,8 @@ containing ``unfactor.py`` and ``teslacrack.py`` files.
    into ``tesla_extensions`` string-list.
 
    .. Note::
-        The extensions '.xxx', '.micro' and '.ttt' have been reported for a new
-        variant of TeslaCrypt (3.0), and this tool cannot decrypt them, anyway.
+        The extensions '.xxx', '.micro', '.mp3' and '.ttt' have been reported for new
+        variants of TeslaCrypt (3.0 and 4.0), and this tool cannot decrypt them, anyway.
 
 
 3. Enter this command in your working folder to process your crypted file
