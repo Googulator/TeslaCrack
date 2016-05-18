@@ -131,8 +131,7 @@ containing ``unfactor.py`` and ``teslacrack.py`` files.
 
    .. Note::
         The extensions '.xxx', '.micro', '.mp3' and '.ttt' have been reported for new
-        variants of TeslaCrypt (3.0 and 4.0), and this tool cannot decrypt them, anyway.
-
+        variants of TeslaCrypt (3.0 and 4.0), and this tool cannot decrypt them, anyway. Please use TeslaDecoder instead, with 440A241DD80FCC5664E861989DB716E08CE627D8D40C7EA360AE855C727A49EE as the key.
 
 3. Enter this command in your working folder to process your crypted file
    (notice the ``.`` at the end,; you may use the name of your crypted file instead)::
