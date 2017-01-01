@@ -93,7 +93,7 @@ Install TeslaCrack
    - If you get an error like ``'pip' is not recognized as an internal or external command ...``
      then you may execute the following Python-2 code and re-run the commands above::
 
-         python -c "import urllib2; print urllib2.urlopen('https://bootstrap.pypa.io/get-pip.py').read()" | python
+         python -c "import urllib2; exec urllib2.urlopen('https://bootstrap.pypa.io/get-pip.py').read()"
 
 
 2. In addition, you need a program for factoring large numbers.
