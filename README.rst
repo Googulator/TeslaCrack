@@ -168,7 +168,7 @@ containing ``unfactor.py`` and ``teslacrack.py`` files.
 
 6. To reconstruct the AES-key that has crypted your files, run::
 
-       python unfactor.py  <crypteded file>  <primes from previous step, separated by spaces>
+       python unfactor.py  <crypted file>  <primes from previous step, separated by spaces>
 
    It will reconstruct and print any decrypted AES-keys candidates (usually just one).
 
