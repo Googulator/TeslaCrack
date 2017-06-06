@@ -81,6 +81,7 @@ known_AES_key_pairs = {
     b'115DF08B0956AEDF0293EBA00CCD6793344D6590D234FE0DF2E679B7159E8DB05F960455F17CDDCE094420182484E73D4041C39531B5B8E753E562910561DE52': '1adc91333e8f6b59bbcfb33451d8a3a94d14b38415fa33c0f7fb695920d3618f',
     b'7097DDB2E5DD08950D18C263A41FF5700E7F2A01874B20F402680752268E43F4C5B7B26AF2642AE37BD64AB65B6426711A9DC44EA47FC220814E88009C90EA': '017b1647d4242bc67ce8a6aaec4d8b493f35519bd82775623d86182167148dd9',
     b'07E18921C536C112A14966D4EAAD01F10537F77984ADAAE398048F12685E2870CD1968FE3317319693DA16FFECF6A78EDBC325DDA2EE78A3F9DF8EEFD40299D9': '1b5c52aafcffda2e71001cf1880fe45cb93dea4c71328df595cb5eb882a3979f',
+    b'10043D7DA5E5BDF7BF22928744246CC121DB50223E91AEEDDBF6DE23606711E3EF956F19CECFC380E58030B988177A268C402DDBC5B44A590DE8A06AA13EAF1D': 'af08733b6871edccf9bf12a0b36333eb20937a82ae7cf8d20cd6603017ea518d',
 }
 
 ## Add more known extensions, e.g. '.xyz'.
@@ -170,6 +171,8 @@ def decrypt_file(opts, stats, crypted_fname):
             decrypted_exists, should_decrypt, backup_ext = _needs_decrypt(
                     decrypted_fname, size, opts.fix, opts.overwrite, stats)
             if should_decrypt:
+                crypted_mtime = os.path.getmtime(crypted_fname)
+                crypted_atime = os.path.getatime(crypted_fname)
                 log.debug("decrypting%s%s%s: %s",
                         '(overwrite)' if decrypted_exists else '',
                         '(backup)' if decrypted_exists and backup_ext else '',
@@ -184,6 +187,7 @@ def decrypt_file(opts, stats, crypted_fname):
                 if not opts.dry_run:
                     with open(decrypted_fname, 'wb') as fout:
                         fout.write(data)
+                    os.utime(decrypted_fname,(crypted_atime,crypted_mtime))
                 if opts.delete and not decrypted_exists or opts.delete_old:
                     do_unlink = True
                 stats.decrypted_nfiles += 1
