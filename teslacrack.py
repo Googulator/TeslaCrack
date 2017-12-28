@@ -28,12 +28,12 @@ optional arguments:
                         counterparts if they have unexpected size. By default,
                         backs-up existing files with '.BAK' extension. Specify
                         empty('') extension for no backup (eg. `--fix=`)
-                        WARNING: You may LOOSE FILES that have changed due to
+                        WARNING: You may LOSE FILES that have changed due to
                         regular use, such as, configuration-files and
                         mailboxes! [default: False].
   --overwrite [<.ext>]  Re-decrypt ALL tesla-files, overwritting all crypted-
                         counterparts. Optionally creates backups with the
-                        given extension. WARNING: You may LOOSE FILES that
+                        given extension. WARNING: You may LOSE FILES that
                         have changed due to regular use, such as,
                         configuration-files and mailboxes! [default: False].
 
@@ -356,14 +356,14 @@ def _parse_args(args):
             help="Re-decrypt tesla-files and overwrite crypted-counterparts if they have unexpected size. "
             "By default, backs-up existing files with '%(const)s' extension. "
             "Specify empty('') extension for no backup (eg. `--fix=`) "
-            "WARNING: You may LOOSE FILES that have changed due to regular use, "
+            "WARNING: You may LOSE FILES that have changed due to regular use, "
             "such as, configuration-files and mailboxes! "
             "[default: %(default)s]. ")
     xgroup_overwrite.add_argument('--overwrite', nargs='?',
             type=_argparse_ext_type, metavar='<.ext>', default=False, const=True,
             help="Re-decrypt ALL tesla-files, overwritting all crypted-counterparts. "
             "Optionally creates backups with the given extension. "
-            "WARNING: You may LOOSE FILES that have changed due to regular use, "
+            "WARNING: You may LOSE FILES that have changed due to regular use, "
             "such as, configuration-files and mailboxes! "
             "[default: %(default)s]. ")
     return ap.parse_args(args)
